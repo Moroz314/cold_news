@@ -40,17 +40,17 @@ bot.on('message', async (msg) => {
     let posts = [];
     
     if (text === 'Павел Клепинин') {
-      posts = await PostModels.klepinin.find().sort({ date: -1 }).limit(5);
+      posts = await PostModels.klepinin.find().sort({ date: 1 }).limit(5);
     } else if (text === 'IT') {
-      posts = await PostModels.it_cifrovizaciya.find().sort({ date: -1 }).limit(5);
+      posts = await PostModels.it_cifrovizaciya.find().sort({ date: 1 }).limit(5);
     } else if (text === '«я-ИТ-ы»') {
-      posts = await PostModels.ya_it_i.find().sort({ date: -1 }).limit(5);
+      posts = await PostModels.ya_it_i.find().sort({ date: 1 }).limit(5);
     } else if (text === 'Mirera') {
-      posts = await PostModels.mirera.find().sort({ date: -1 }).limit(5);
+      posts = await PostModels.mirera.find().sort({ date: 1 }).limit(5);
     } else if (text === 'Roblox в связке с вуз и образование') {
-      posts = await PostModels.roblox.find().sort({ date: -1 }).limit(5);
+      posts = await PostModels.roblox.find().sort({ date: 1 }).limit(5);
     } else if (text === 'другое') {
-      posts = await PostModels.other.find().sort({ date: -1 }).limit(5);
+      posts = await PostModels.other.find().sort({ date: 1 }).limit(5);
     }else {
       return;
     }
