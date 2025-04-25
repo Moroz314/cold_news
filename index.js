@@ -2,7 +2,7 @@ import TelegramBot from 'node-telegram-bot-api'
 import mongoose from "mongoose"
 import { PostModels } from './components/receiving_post.js'
 import { main } from './components/receiving_post.js';
-const TOKEN = "7082809857:AAEFs5F0q9mDFl20ki2RTbP_97EXkM-xaS8"
+const TOKEN = "7671893383:AAEG7rE4hov76OagJLuZhaf1o60i_119_ec"
 
 const bot = new TelegramBot(TOKEN, {polling: true});
 

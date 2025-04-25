@@ -16,7 +16,7 @@ const agent = new https.Agent({
 
 const apiId = 21571955;
 const apiHash = 'e3e614651aba0bffc9b26526a3c83914';
-const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNTABu3bMnOa4bb5Jv7v479Ku3eyVLSeG1LIfmrJYjKkszhbuvS4QRPy4cO+kGfB+hVOERnzbbsAE7WXi+ZAdvKyjIJFX0E3j3TNZ0d6VLv34J10alWt/SKeWf/V8kf9RNmBdNICN/fSoQ8sEzwB30Th3TBhDyQ4wT+9muS+jZQTT9YTgM4x+7Td5/N6ZNX4/RUercs0UY4Iq1ihVUVi9JG0M6vPvOFNe94NaIgnv1XM9xLhUrEiGd4M/MDW86dRnCwo21zFLTjyfjSGzgmyGr2uZdbB8qmu8XQpFoq/camWiDT731USkMAGAdoM5Q0KoX9vUG12V9AddLO1SEp3XfcSOvBI=';
+const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNTABu3jeIpODXBz/z6RYCZ8i2bjue2wWa5gHRUB7ZYEv+Crt+pMfEW7cIzgtbBW4kPblBHQThSEzzIXHzPqU2Mr8/iPfXs4WikM4m6ByI4Zss9ptSUjrAj8HVrcGUrtEh5dSJvW/oIqDripTfVWW4nPFgwZQmKR+pGqQRm4ais/gEXTzz8CPV4BXG7xXeGfUrX7vdWkgsGvU9LhjozQ18Y5zL/1eWQgvqbxtrG1nDGNs3ZCoquL29dB0wdPMq25boohPJpCC23w6I0Qz60gF1zGpqV2Gc90/vxcLoq0N8CXn1E3/WpKNqZxxD1e33gt84Zk4mG1JcnVY956eyVZ7QNLEtuk=';
 const GIGACHAT_TOKEN = 'NWVlMWY2ZWUtZjgyMC00ODY2LWI1MDctOTI4NGE2M2FkZDE0OjU0MmUzM2ExLWI1YTItNDYwOS04MzdjLTU1ZjkxZGE3MTUyNQ=='
 
 const CHANNELS_TO_MONITOR = [
@@ -103,7 +103,7 @@ let gigaChatToken = null;
 let tokenExpiration = 0;
 
 async function getGigaChatToken() {
-  // Если токен еще действителен, возвращаем его
+
   if (gigaChatToken && Date.now() < tokenExpiration) {
     return gigaChatToken;
   }
@@ -238,16 +238,16 @@ export async function main() {
           ssilkaPost: `https://t.me/${channel.username}/${msg.id}`
         });
       } catch (error) {
-        console.error('⚠️ Ошибка обработки:', error);
+        console.error(' Ошибка обработки:', error);
       }
     });
   
-    console.log('👂 Бот запущен и слушает сообщения...');
+    console.log(' Бот запущен и слушает сообщения...');
     await client.connect();
   
 
   } catch (err) {
-    console.error('❌ Критическая ошибка:', err);
+    console.error('Критическая ошибка:', err);
     process.exit(1);
   }
 }
