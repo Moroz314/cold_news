@@ -159,12 +159,7 @@ async function savePost(postData, userThemes, telegramBot) { // Добавлен
           await telegramBot.sendMessage(
             user.telegramId,
             `📢 Новый пост по теме "${postType}"!\n` +
-            `Канал: ${postData.channel}` ,
-            {
-              reply_markup: {
-                inline_keyboard: [[{text: "🔗 Открыть пост", url: postData.ssilkaPost}]]
-              }
-            }
+            `Канал: ${postData.channel}` 
           );
         }
       }

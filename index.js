@@ -34,7 +34,7 @@ async function getOrCreateUser(telegramId) {
 async function generateKeyboard(telegramId) {
   const user = await getOrCreateUser(telegramId);
   const buttons = [
-    ...user.themes.map(theme => [{text: `тема: ${theme}`}]),
+    ...user.themes.map(theme => [{text: `${theme}`}]),
     [{text: 'Добавить тему'}, {text: 'Удалить тему'}, {text: 'Отключить уведомления'}]
   ];
   return { reply_markup: { keyboard: buttons, resize_keyboard: true } };
