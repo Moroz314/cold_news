@@ -7,6 +7,7 @@ import axios from 'axios';
 import https from "https"
 import qs from "qs"
 import { v4 as uuidv4 } from 'uuid';
+import { sendPostNotifications } from '../index.js';
 
 const agent = new https.Agent({  
   rejectUnauthorized: false
@@ -142,20 +143,39 @@ async function classifyPost(postText, tems, retries = 3) {
   }
 }
 
-
-async function savePost(postData, userThemes) {
+async function savePost(postData, userThemes, telegramBot) { // Добавлен параметр telegramBot
   try {
     const postType = await classifyPost(postData.text, userThemes);
-    console.log(postType, 'postType')
-    postData.tema = postType
+    console.log(postType, 'postType');
+    postData.tema = postType;
     await new PostModels["post_news"](postData).save();
+    
+    // Отправляем уведомления всем активным пользователям
+    if (telegramBot) {
+      sendPostNotifications(telegramBot)
+      const allUsers = await UserTheme.find({});
+      for (const user of allUsers) {
+        if (user.themes.includes(postType)) {
+          await telegramBot.sendMessage(
+            user.telegramId,
+            `📢 Новый пост по теме "${postType}"!\n` +
+            `Канал: ${postData.channel}\n` 
+            {
+              reply_markup: {
+                inline_keyboard: [[{text: "🔗 Открыть пост", url: postData.ssilkaPost}]]
+              }
+            }
+          );
+        }
+      }
+    }
+    
     console.log(`💾 Сохранено с темой ${postType}_posts`);
   } catch (error) {
     console.error('⚠️ Ошибка сохранения:', error);
   }
 }
-
-export async function main(telegramId) {
+export async function main(telegramId, telegramBot) {
   try {
     console.log(telegramId)
   await mongoose.connect('mongodb+srv://vladmorozov2020:Nevskifront208@moroz.gjylj0v.mongodb.net/teleg_news?retryWrites=true&w=majority&appName=Moroz')
@@ -225,7 +245,7 @@ export async function main(telegramId) {
           channelId: channel.id,
           ssilkaPost: `https://t.me/${channel.username}/${msg.id}`,
           tema: ""
-        }, themes);
+        }, themes, telegramBot);
       } catch (error) {
         console.error('⚠️ Ошибка обработки:', error);
       }

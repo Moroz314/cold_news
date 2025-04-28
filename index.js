@@ -7,6 +7,7 @@ import { main } from './components/receiving_post.js';
 const TOKEN = "8118538983:AAE-g9pWvdC6qlOZj2h6ywS2OQAZt4S4OTo";
 const bot = new TelegramBot(TOKEN, {polling: true});
 
+const activeUsers = new Set();
 
 mongoose.connect('mongodb+srv://vladmorozov2020:Nevskifront208@moroz.gjylj0v.mongodb.net/teleg_news?retryWrites=true&w=majority&appName=Moroz')
   .then(() => console.log('✅ MongoDB connected'))
@@ -34,21 +35,65 @@ async function generateKeyboard(telegramId) {
   const user = await getOrCreateUser(telegramId);
   const buttons = [
     ...user.themes.map(theme => [{text: `тема: ${theme}`}]),
-    [{text: 'Добавить тему'}, {text: 'Удалить тему'}]
+    [{text: 'Добавить тему'}, {text: 'Удалить тему'}, {text: 'Отключить уведомления'}]
   ];
   return { reply_markup: { keyboard: buttons, resize_keyboard: true } };
 }
 
 bot.onText(/\/start/, async (msg) => {
-  await main(msg.from.id);
+  await main(msg.from.id, bot);
   const keyboard = await generateKeyboard(msg.from.id);
+  activeUsers.add(msg.from.id); 
+  await bot.sendMessage(msg.chat.id, 'Каналы посты которых принемает бот: "ВШГУ Президентской академии", "Технологическое лидерство России", "Канал Алексея Комиссарова", "Личность в системах управления", "Институт ЭМИТ РАНХиГС", "РАНХиГС. Новости"');
   await bot.sendMessage(msg.chat.id, 'Выберите тему:', keyboard);
 });
 
+export async function sendPostNotifications(postData) {
+  try {
+    // Получаем всех пользователей, у которых есть подписка на эту тему
+    const subscribedUsers = await UserTheme.find({ 
+      themes: postData.tema,
+      telegramId: { $exists: true }
+    });
+
+    for (const user of subscribedUsers) {``
+      // Проверяем, активен ли пользователь (не отключил ли уведомления)
+      if (activeUsers.get(user.telegramId)?.notificationsEnabled !== false) {
+        try {
+          await bot.sendMessage(
+            user.telegramId,
+            `📢 <b>Новый пост по теме "${postData.tema}"</b>`,
+            {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [[
+                  { text: "🔕 Отключить уведомления", callback_data: `disable_notif_${postData.tema}` }
+                ]]
+              }
+            }
+          );
+        } catch (err) {
+          console.error(`Ошибка отправки уведомления пользователю ${user.telegramId}:`, err);
+          // Если пользователь заблокировал бота, удаляем его из активных
+          if (err.response?.statusCode === 403) {
+            activeUsers.delete(user.telegramId);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Ошибка при рассылке уведомлений:', err);
+  }
+}
 
 bot.onText(/^Добавить тему$/, async (msg) => {
   userStates.set(msg.chat.id, { action: 'addingTheme' });
   await bot.sendMessage(msg.chat.id, 'Введите название новой темы (она должна быть с маленькой буквы, можно несколько слов):');
+});
+
+bot.onText(/^Отключить уведомления$/, async (msg) => {
+  activeUsers.delete(msg.from.id);
+  await bot.sendMessage(msg.chat.id, 'Уведомления отключены. Используйте /start для повторного включения.');
 });
 
 
