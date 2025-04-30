@@ -12,6 +12,7 @@ const client = new TelegramClient(session, apiId, apiHash, {});
 (async () => {
   await client.start({
     phoneNumber: "+79046125559", // Ваш номер телефона
+    password: async () => await input.text('Введите пароль 2FA: '),
     phoneCode: async () => await input.text("Введите код из Telegram: "),
     onError: (err) => console.error("Ошибка:", err),
   });

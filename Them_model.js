@@ -16,7 +16,7 @@ const UserThemeSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-// Метод для добавления темы
+
 UserThemeSchema.methods.addTheme = function(theme) {
   if (!this.themes.includes(theme)) {
     this.themes.push(theme);
@@ -31,7 +31,7 @@ UserThemeSchema.methods.addChannl = function(chanl) {
   return this.save();
 };
 
-// Метод для удаления темы
+
 UserThemeSchema.methods.removeTheme = function(theme) {
   this.themes = this.themes.filter(t => t !== theme);
   return this.save();

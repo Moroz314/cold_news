@@ -16,6 +16,8 @@ const agent = new https.Agent({
 const apiId = 21571955;
 const apiHash = 'e3e614651aba0bffc9b26526a3c83914';
 const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNTABuzktr3gRlutiXvrP+Uq2WnVC+egTVy6PWBvl3dx5ZLt8ciWqOrSMBlB7LC/2uKsneKyLhBFvjIA4QVXjNpA7s5ERI63p92KqnMNrFTfAcoNxYVp3NVFHx9elyO2j3/Jo/blHpic6ejjjBOfF6WulAAb8nty/OEubUILl8tNOMnCowe2+hWwMsPAfOz/YnlE4bzP/idrFLIsBA/OV72UFEEQVZeXdRMQplNBpvLawz8JnGDrTPzQP5vB13cTbc6EHDLAbGLud5dXyBA1Uzewq1k/WPW/UPgghssyAqeyIB0SBStUVqiHEB8W3MCgnix0GlbRSZaI+T9NPWQj5yvrdlNw=';
+
+//const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNTEBu0p0tVucDIJqlzop5XB+3rNc+FBKZBx/6YYjUTM08lCVByWtRjouSf6qLSBhFs0WmL3RNBwlUSd/nhbs9VPBKtqrMuzQT+hrEHQirPklG/vJKAP/z8jjm9z0NLB2J2Ax/FIVOmwirv8Pg6pRcsFRDvg0cwXoRLcn4F9eCvZi5u3hwPPcMRHR8Snl79jgcBvTWgmWWe+eHuihix44LPjKL8kqvDsd/mdf/b0ddEDpT4I+4tlg+fzjEOVRhsIKJScfR+PVhBhbrKXJOqJDFD+4gqopqJ31ACAt00tcbJQExgEpZOcNQ0+VJ/2MdPHcbD4gX8QYDHmeKZwTlaGly1tcAeo=';
 const CHANNELS_TO_MONITOR = [
   'test333234',
   'akomissarov2022',
@@ -137,37 +139,98 @@ async function classifyPost(postText, allThemes, retries = 3) {
   }
 }
 
+export async function tgk_predl (tema) {
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const token = await getGigaChatToken();
+
+    const prompt = `Ты — эксперт по поиску Telegram-каналов. Я даю тебе тему — твоя задача найти максимальное количество релевантных публичных Telegram-каналов по этой теме и предоставить их в следующем формате:
+
+Формат ответа:
+Название канала (t.me/ссылка)
+
+    Краткое описание (язык, количество подписчиков*, основная тематика)
+
+    Последние обсуждаемые темы (если известно)
+
+Пример:
+Startup Universe (t.me/startup_universe)
+
+    Англоязычный канал о стартапах (50K+ подписчиков)
+
+    Последние посты: разбор pitch-дек, кейсы привлечения инвестиций
+
+Требования:
+
+    Только публичные каналы (формат ссылки: t.me/username)
+
+    Если каналов много — выбери ТОП-20 по популярности/актуальности
+
+    Если данных о подписчиках нет — пропускай этот пункт
+
+    Если каналов нет — предложи альтернативные темы для поиска
+
+Моя тема: [${tema}]`;
+
+    const response = await axios.post(
+      GIGACHAT_API_URL,
+      {
+        model: 'GigaChat-Pro',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 50
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        httpsAgent: agent,
+        timeout: 5000
+      }
+    );
+
+    const responseText = response.data.choices[0].message.content.trim();
+     console.log(responseText)
+
+    return responseText;
+  } catch (error) {
+    console.log(error)
+  }
+}
+
 async function savePost(postData, allThemes) {
   try {
-    // 1. Классификация поста
+
     const postThemes = await classifyPost(postData.text, allThemes);
     console.log("Извлечённые темы:", postThemes);
 
-    // 2. Всегда сохраняем пост, даже если только "другое"
+
     postData.tema = postThemes;
     const savedPost = await new PostModels.post_news(postData).save();
     
-    // 3. Если среди тем только "другое" - не рассылаем уведомления
+
     if (postThemes.length === 1 && postThemes[0] === "другое") {
       console.log("Пост сохранён как 'другое', уведомления не отправляются");
       return;
     }
 
-    // 4. Фильтруем темы (убираем "другое" для уведомлений)
-    const notificationThemes = postThemes.filter(theme => theme !== "другое");
 
-    // 5. Поиск подписанных пользователей (исключая тех, кто подписан только на "другое")
+    const notificationThemes = postThemes
+
+
     const subscribedUsers = await UserTheme.find({
       themes: { 
         $in: notificationThemes,
-        $not: { $eq: ["другое"] } // Исключаем пользователей только с "другое"
+        $not: { $eq: ["другое"] } 
       }
     });
 
-    // 6. Отправка уведомлений
+
     for (const user of subscribedUsers) {
       try {
-        // Определяем точные совпадения тем пользователя (исключая "другое")
+
         const userMatchedThemes = user.themes.filter(theme => 
           notificationThemes.includes(theme)
         );
@@ -207,7 +270,7 @@ async function savePost(postData, allThemes) {
     console.error('⚠️ Ошибка сохранения:', error);
   }
 }
-// Вспомогательная функция для форматирования текста тем
+
 function formatThemesText(themes) {
   if (themes.length === 1) return themes[0];
   
@@ -301,7 +364,7 @@ export async function initializeUser(telegramId) {
       await UserTheme.create({ telegramId, themes: ['другое'] });
     }
 
-    // Запускаем мониторинг при первом подключении пользователя
+
     if (!isMonitoring) {
       await startMonitoring();
     }

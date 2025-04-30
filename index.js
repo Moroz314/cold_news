@@ -3,20 +3,23 @@ import mongoose from 'mongoose';
 import UserTheme from './Them_model.js';
 import { PostModels } from './components/receiving_post.js';
 import { initializeUser } from './components/receiving_post.js';
+import { tgk_predl }  from './components/receiving_post.js';
 
 const TOKEN = "8118538983:AAE-g9pWvdC6qlOZj2h6ywS2OQAZt4S4OTo";
+
+//const TOKEN = "7596311250:AAG3mH27Mt8GyfItVgZzKujx8NNqgoxI7eg";
 export const bot = new TelegramBot(TOKEN, {polling: true});
 
 const activeUsers = new Set();
 
-// Подключение к MongoDB с улучшенной обработкой ошибок
+
 async function connectDB() {
   try {
     await mongoose.connect('mongodb+srv://vladmorozov2020:Nevskifront208@moroz.gjylj0v.mongodb.net/teleg_news?retryWrites=true&w=majority&appName=Moroz');
     console.log('✅ MongoDB connected');
   } catch (err) {
     console.error('❌ MongoDB connection error:', err);
-    process.exit(1); // Завершаем процесс при ошибке подключения
+    process.exit(1); 
   }
 }
 
@@ -24,7 +27,7 @@ connectDB();
 
 const userStates = new Map();
 
-// Улучшенная функция работы с пользователем
+
 async function getOrCreateUser(telegramId) {
   try {
     let user = await UserTheme.findOne({telegramId});
@@ -40,7 +43,7 @@ async function getOrCreateUser(telegramId) {
   }
 }
 
-// Генерация клавиатуры с улучшенной структурой
+
 async function generateKeyboard(telegramId) {
   const user = await getOrCreateUser(telegramId);
   const buttons = [
@@ -60,7 +63,8 @@ async function generateKeyboard(telegramId) {
   };
 }
 
-// Обработчик команды /start
+
+
 bot.onText(/\/start/, async (msg) => {
   try {
     await initializeUser(msg.from.id);
@@ -85,7 +89,7 @@ bot.onText(/\/start/, async (msg) => {
   }
 });
 
-// Функция отправки уведомлений с улучшенной обработкой
+
 export async function sendPostNotifications(postData) {
   try {
     const subscribedUsers = await UserTheme.find({
@@ -134,7 +138,7 @@ export async function sendPostNotifications(postData) {
   }
 }
 
-// Обработчики команд с улучшенной валидацией
+
 bot.onText(/^Добавить тему$/, async (msg) => {
   userStates.set(msg.chat.id, { action: 'addingTheme' });
   await bot.sendMessage(
@@ -175,7 +179,9 @@ bot.on('message', async (msg) => {
 
     try {
       await user.addTheme(text);
+      let predl = tgk_predl(text)
       const keyboard = await generateKeyboard(userId);
+      await bot.sendMessage(chatId, `${predl}`);
       await bot.sendMessage(chatId, `✅ Тема "${text}" успешно добавлена!`, keyboard);
     } catch (err) {
       console.error('Ошибка добавления темы:', err);
@@ -186,7 +192,7 @@ bot.on('message', async (msg) => {
 
   if (user.themes.includes(text)) {
     try {
-      const posts = await PostModels.post_news.find({ tema: text }).sort({ date: -1 }).limit(5);
+      const posts = await PostModels.post_news.find({ tema: text }).sort({ date: 1 }).limit(5);
       
       if (!posts.length) {
         return bot.sendMessage(chatId, `По теме "${text}" пока нет сохранённых постов.`);
