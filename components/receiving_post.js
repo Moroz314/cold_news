@@ -15,7 +15,7 @@ const agent = new https.Agent({
 // Конфигурационные константы
 const apiId = 21571955;
 const apiHash = 'e3e614651aba0bffc9b26526a3c83914';
-const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNTABuzktr3gRlutiXvrP+Uq2WnVC+egTVy6PWBvl3dx5ZLt8ciWqOrSMBlB7LC/2uKsneKyLhBFvjIA4QVXjNpA7s5ERI63p92KqnMNrFTfAcoNxYVp3NVFHx9elyO2j3/Jo/blHpic6ejjjBOfF6WulAAb8nty/OEubUILl8tNOMnCowe2+hWwMsPAfOz/YnlE4bzP/idrFLIsBA/OV72UFEEQVZeXdRMQplNBpvLawz8JnGDrTPzQP5vB13cTbc6EHDLAbGLud5dXyBA1Uzewq1k/WPW/UPgghssyAqeyIB0SBStUVqiHEB8W3MCgnix0GlbRSZaI+T9NPWQj5yvrdlNw=';
+const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNDEBu3yxAPKBDJruJ9wtcA5L5iE8oUxxk0+kCp4OUrxWVDTmxsnEcR7ppXMA56GGmkiQyOziR+syaLpkw7yLLPrUIXIHl0MRe7J5PSBbonpNCjxHie2RD0qh/hCXQedkNum8A9EXtmXbjUGiRy7DrKsbW2reICAejYJIBwF4zRisA01GuQkpZlkgNSaYuvTHQob048XpRNPsrFQeOHriz+lodLLt/6L1gMlCqckhvj/CNiFdFOQFnPh13Rfu0PiZIBnBBH/kqFcxabLjJ/o/RYOSLIXYK2/hlu0q20hHMMr+u+g74I5sLgM8lokQ+vSVk+9p90S4Ws0zEdqr+64cHzcIMpU=';
 
 //const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNTEBu0p0tVucDIJqlzop5XB+3rNc+FBKZBx/6YYjUTM08lCVByWtRjouSf6qLSBhFs0WmL3RNBwlUSd/nhbs9VPBKtqrMuzQT+hrEHQirPklG/vJKAP/z8jjm9z0NLB2J2Ax/FIVOmwirv8Pg6pRcsFRDvg0cwXoRLcn4F9eCvZi5u3hwPPcMRHR8Snl79jgcBvTWgmWWe+eHuihix44LPjKL8kqvDsd/mdf/b0ddEDpT4I+4tlg+fzjEOVRhsIKJScfR+PVhBhbrKXJOqJDFD+4gqopqJ31ACAt00tcbJQExgEpZOcNQ0+VJ/2MdPHcbD4gX8QYDHmeKZwTlaGly1tcAeo=';
 const CHANNELS_TO_MONITOR = [
@@ -211,10 +211,7 @@ async function savePost(postData, allThemes) {
     const savedPost = await new PostModels.post_news(postData).save();
     
 
-    if (postThemes.length === 1 && postThemes[0] === "другое") {
-      console.log("Пост сохранён как 'другое', уведомления не отправляются");
-      return;
-    }
+
 
 
     const notificationThemes = postThemes
