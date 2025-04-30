@@ -3,7 +3,6 @@ import mongoose from 'mongoose';
 import UserTheme from './Them_model.js';
 import { PostModels } from './components/receiving_post.js';
 import { initializeUser } from './components/receiving_post.js';
-import { tgk_predl }  from './components/receiving_post.js';
 
 const TOKEN = "8118538983:AAE-g9pWvdC6qlOZj2h6ywS2OQAZt4S4OTo";
 
@@ -179,9 +178,7 @@ bot.on('message', async (msg) => {
 
     try {
       await user.addTheme(text);
-      let predl = tgk_predl(text)
       const keyboard = await generateKeyboard(userId);
-      await bot.sendMessage(chatId, `${predl}`);
       await bot.sendMessage(chatId, `✅ Тема "${text}" успешно добавлена!`, keyboard);
     } catch (err) {
       console.error('Ошибка добавления темы:', err);
