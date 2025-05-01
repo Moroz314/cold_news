@@ -201,20 +201,28 @@ Startup Universe (t.me/startup_universe)
   }
 }
 
+const processedPosts = new Map();
+
 async function savePost(postData, allThemes) {
   try {
-
+    // Проверяем, не обрабатывали ли мы уже этот пост
+    const postKey = `${postData.channelId}_${postData.ssilkaPost}`;
+    if (processedPosts.has(postKey)) {
+      console.log(`Пост уже обработан: ${postKey}`);
+      return;
+    }
+    
+    // Помечаем пост как обработанный
+    processedPosts.set(postKey, true);
+    
+    // Остальной код функции savePost без изменений
     const postThemes = await classifyPost(postData.text, allThemes);
     console.log("Извлечённые темы:", postThemes);
 
-
     postData.tema = postThemes;
     const savedPost = await new PostModels.post_news(postData).save();
-    
 
-
-    const notificationThemes = postThemes
-
+    const notificationThemes = postThemes;
 
     const subscribedUsers = await UserTheme.find({
       themes: { 
@@ -223,10 +231,8 @@ async function savePost(postData, allThemes) {
       }
     });
 
-
     for (const user of subscribedUsers) {
       try {
-
         const userMatchedThemes = user.themes.filter(theme => 
           notificationThemes.includes(theme)
         );
@@ -262,6 +268,12 @@ async function savePost(postData, allThemes) {
     }
 
     console.log(`💾 Сохранён пост: "${postData.text.substring(0, 30)}..." с темами: ${postThemes.join(', ')}`);
+    
+    // Очищаем старые записи, чтобы не накапливать память
+    if (processedPosts.size > 1000) {
+      const oldestKey = processedPosts.keys().next().value;
+      processedPosts.delete(oldestKey);
+    }
   } catch (error) {
     console.error('⚠️ Ошибка сохранения:', error);
   }
@@ -296,13 +308,18 @@ export async function updateChannelsList() {
     return allChanle
 }
 
+let eventHandler = null;
+
 export async function startMonitoring() {
-  
   try {
+    if (isMonitoring) {
+      console.log('Мониторинг уже запущен');
+      return;
+    }
 
     isMonitoring = true;
     const allChanle = await updateChannelsList();
-    console.log(allChanle)
+    console.log(allChanle);
 
     const channelsInfo = {};
     for (const username of allChanle) {
@@ -319,7 +336,12 @@ export async function startMonitoring() {
       }
     }
 
-    client.addEventHandler(async (event) => {
+    // Удаляем предыдущий обработчик, если он был
+    if (eventHandler) {
+      client.removeEventHandler(eventHandler);
+    }
+
+    eventHandler = async (event) => {
       try {
         if (!['UpdateNewChannelMessage', 'UpdateNewMessage'].includes(event.className)) return;
   
@@ -338,7 +360,7 @@ export async function startMonitoring() {
         console.log(`📩 Пост из ${channel.title}`);
 
         const allThemes = await UserTheme.distinct('themes');
-        console.log(allThemes)
+        console.log(allThemes);
         
         await savePost({
           text: msg.message,
@@ -351,8 +373,9 @@ export async function startMonitoring() {
       } catch (error) {
         console.error('⚠️ Ошибка обработки:', error);
       }
-    });
+    };
 
+    client.addEventHandler(eventHandler);
     console.log('👂 Мониторинг каналов запущен');
   } catch (err) {
     console.error('❌ Ошибка мониторинга каналов:', err);
