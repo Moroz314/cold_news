@@ -288,7 +288,7 @@ async function initializeClient() {
 }
 
 
-const client = await initializeClient();
+export const client = await initializeClient();
 
 export async function updateChannelsList() {
     const allChanle = await UserTheme.distinct('channles');
