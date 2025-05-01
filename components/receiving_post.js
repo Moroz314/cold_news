@@ -1,6 +1,5 @@
 import { TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions/index.js';
-import { Api } from 'telegram/tl/index.js';
 import UserTheme from '../Them_model.js';
 import mongoose from 'mongoose';
 import axios from 'axios';
@@ -8,20 +7,19 @@ import https from "https";
 import qs from "qs";
 import { v4 as uuidv4 } from 'uuid';
 import { bot } from '../index.js';
-import { JSDOM } from 'jsdom';
 
-// Конфигурация HTTPS агента
 const agent = new https.Agent({  
   rejectUnauthorized: false
 });
 
-// Константы подключения Telegram
+// Конфигурационные константы
 const apiId = 21571955;
 const apiHash = 'e3e614651aba0bffc9b26526a3c83914';
-const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNDEBu3yxAPKBDJruJ9wtcA5L5iE8oUxxk0+kCp4OUrxWVDTmxsnEcR7ppXMA56GGmkiQyOziR+syaLpkw7yLLPrUIXIHl0MRe7J5PSBbonpNCjxHie2RD0qh/hCXQedkNum8A9EXtmXbjUGiRy7DrKsbW2reICAejYJIBwF4zRisA01GuQkpZlkgNSaYuvTHQob048XpRNPsrFQeOHriz+lodLLt/6L1gMlCqckhvj/CNiFdFOQFnPh13Rfu0PiZIBnBBH/kqFcxabLjJ/o/RYOSLIXYK2/hlu0q20hHMMr+u+g74I5sLgM8lokQ+vSVk+9p90S4Ws0zEdqr+64cHzcIMpU=';
 
-// Мониторируемые каналы
+const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNTEBu615Dwi4/cWGjCutGJ/pSqglfbdS6IHFzZt6pbdInGjqU6zuGoOCAr36JdkTTq6QctRrx+isG4yttszsS4yt057dOzRvd5STOyvjUnrZC9kNm0gq2Yq2O3yVCZSU/rvkx9wjPDZiFeU5EWAmxgLnQZ2lxVobUHLWdbH6Q4RYvUmiJhmG5X91FL57lbApalg9xLOrwjyTtcWBtjFVxsfJjfThJ+dc1zRWjtuxgA1W/pzqgWn28+IpmRIFc1JmSiaLBnMTjamFdhfTEruaKtkybbM4pHhyOPUWyvlJBBvMpfibS9MgmSozSpjxsdPkXgFuXWAFd9KtQ8X3QpsfmXwe1hc=';
+//const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNTEBu0p0tVucDIJqlzop5XB+3rNc+FBKZBx/6YYjUTM08lCVByWtRjouSf6qLSBhFs0WmL3RNBwlUSd/nhbs9VPBKtqrMuzQT+hrEHQirPklG/vJKAP/z8jjm9z0NLB2J2Ax/FIVOmwirv8Pg6pRcsFRDvg0cwXoRLcn4F9eCvZi5u3hwPPcMRHR8Snl79jgcBvTWgmWWe+eHuihix44LPjKL8kqvDsd/mdf/b0ddEDpT4I+4tlg+fzjEOVRhsIKJScfR+PVhBhbrKXJOqJDFD+4gqopqJ31ACAt00tcbJQExgEpZOcNQ0+VJ/2MdPHcbD4gX8QYDHmeKZwTlaGly1tcAeo=';
 const CHANNELS_TO_MONITOR = [
+  'testtest314',
   'test333234',
   'akomissarov2022',
   'mainranepa',
@@ -31,7 +29,7 @@ const CHANNELS_TO_MONITOR = [
   'pers_conf'
 ];
 
-// Модель данных MongoDB
+// Модель данных
 export const PostModels = {
   post_news: mongoose.model('newsPost', new mongoose.Schema({
     text: String,
@@ -49,38 +47,19 @@ export const PostModels = {
   }), 'news_posts'),
 };
 
-// Конфигурация GigaChat API
+// GigaChat API конфигурация
 const GIGACHAT_AUTH_URL = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth';
 const GIGACHAT_API_URL = 'https://gigachat.devices.sberbank.ru/api/v1/chat/completions';
 const CLIENT_ID = '5ee1f6ee-f820-4866-b507-9284a63add14';
 const CLIENT_SECRET = 'fb8ebde0-8ec4-44e3-81b7-f06f2d15ade0';
 
-// Глобальные переменные
 let gigaChatToken = null;
 let tokenExpiration = 0;
+
+// Глобальные переменные для управления подключением
 let clientInstance = null;
 let isMonitoring = false;
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 10;
 
-// Конфигурация клиента Telegram
-const clientConfig = {
-  connectionRetries: 5,
-  retryDelay: 1000,
-  autoReconnect: true,
-  useWSS: false,
-  networkSocketOptions: {
-    timeout: 10000,
-    keepAlive: true,
-    keepAliveDelay: 10000
-  }
-};
-
-// ================== Основные функции ==================
-
-/**
- * Получение токена GigaChat
- */
 async function getGigaChatToken() {
   if (gigaChatToken && Date.now() < tokenExpiration) {
     return gigaChatToken;
@@ -111,9 +90,6 @@ async function getGigaChatToken() {
   }
 }
 
-/**
- * Классификация поста по темам
- */
 async function classifyPost(postText, allThemes, retries = 3) {
   try {
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -151,6 +127,7 @@ async function classifyPost(postText, allThemes, retries = 3) {
       .split(",")
       .map(theme => theme.trim().toLowerCase())
       .filter(theme => allThemes.includes(theme));
+    console.log(matchedThemes, 'awefawef')
 
     return matchedThemes.length > 0 ? matchedThemes : ["другое"];
   } catch (error) {
@@ -163,16 +140,38 @@ async function classifyPost(postText, allThemes, retries = 3) {
   }
 }
 
-/**
- * Поиск Telegram-каналов по теме
- */
-export async function tgk_predl(tema) {
+export async function tgk_predl (tema) {
   try {
     await new Promise(resolve => setTimeout(resolve, 1000));
     const token = await getGigaChatToken();
 
-    const prompt = `Ты — эксперт по поиску Telegram-каналов. Найди релевантные публичные каналы по теме: [${tema}]. 
-    Формат ответа: Название (t.me/ссылка) - Описание`;
+    const prompt = `Ты — эксперт по поиску Telegram-каналов. Я даю тебе тему — твоя задача найти максимальное количество релевантных публичных Telegram-каналов по этой теме и предоставить их в следующем формате:
+
+Формат ответа:
+Название канала (t.me/ссылка)
+
+    Краткое описание (язык, количество подписчиков*, основная тематика)
+
+    Последние обсуждаемые темы (если известно)
+
+Пример:
+Startup Universe (t.me/startup_universe)
+
+    Англоязычный канал о стартапах (50K+ подписчиков)
+
+    Последние посты: разбор pitch-дек, кейсы привлечения инвестиций
+
+Требования:
+
+    Только публичные каналы (формат ссылки: t.me/username)
+
+    Если каналов много — выбери ТОП-20 по популярности/актуальности
+
+    Если данных о подписчиках нет — пропускай этот пункт
+
+    Если каналов нет — предложи альтернативные темы для поиска
+
+Моя тема: [${tema}]`;
 
     const response = await axios.post(
       GIGACHAT_API_URL,
@@ -180,7 +179,7 @@ export async function tgk_predl(tema) {
         model: 'GigaChat-Pro',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.3,
-        max_tokens: 500
+        max_tokens: 50
       },
       {
         headers: {
@@ -193,238 +192,174 @@ export async function tgk_predl(tema) {
       }
     );
 
-    return response.data.choices[0].message.content.trim();
+    const responseText = response.data.choices[0].message.content.trim();
+     console.log(responseText)
+
+    return responseText;
   } catch (error) {
-    console.error('Ошибка поиска каналов:', error);
-    return "Не удалось найти каналы по данной теме";
+    console.log(error)
   }
 }
 
-/**
- * Сохранение поста и рассылка уведомлений
- */
 async function savePost(postData, allThemes) {
   try {
+
     const postThemes = await classifyPost(postData.text, allThemes);
     console.log("Извлечённые темы:", postThemes);
 
+
     postData.tema = postThemes;
     const savedPost = await new PostModels.post_news(postData).save();
+    
+
+
+    const notificationThemes = postThemes
 
 
     const subscribedUsers = await UserTheme.find({
-      themes: { $in: postThemes }
+      themes: { 
+        $in: notificationThemes,
+        $not: { $eq: ["другое"] } 
+      }
     });
+
 
     for (const user of subscribedUsers) {
       try {
+
         const userMatchedThemes = user.themes.filter(theme => 
-          postThemes.includes(theme)
+          notificationThemes.includes(theme)
         );
 
-        const themesText = formatThemesText(userMatchedThemes);
+        const themesText = userMatchedThemes.join(", ");
         
         await bot.sendMessage(
           user.telegramId,
           `📢 <b>Новый пост по теме: ${themesText}</b>\n` +
           `<b>Канал:</b> ${postData.channel}\n` +
-          `<b>Текст:</b> ${postData.text.substring(0, 100)}...`,
+          `<b>Текст:</b> ${postData.text.substring(0, 100)}...\n\n` +
+          `🏷️ <i>Теги: ${notificationThemes.join(', ')}</i>`,
           {
             parse_mode: 'HTML',
             reply_markup: {
               inline_keyboard: [
                 [
-                  { text: "🔗 Открыть пост", url: postData.ssilkaPost }
+                  { text: "🔗 Открыть пост", url: postData.ssilkaPost },
+                  { 
+                    text: "🔕 Отключить уведомления", 
+                    callback_data: `disable_${userMatchedThemes.join('|')}`
+                  }
                 ]
               ]
             }
           }
         );
+        
+        console.log(`📨 Уведомление отправлено ${user.telegramId} по темам: ${themesText}`);
       } catch (err) {
         console.error(`Ошибка отправки пользователю ${user.telegramId}:`, err.message);
       }
     }
+
+    console.log(`💾 Сохранён пост: "${postData.text.substring(0, 30)}..." с темами: ${postThemes.join(', ')}`);
   } catch (error) {
     console.error('⚠️ Ошибка сохранения:', error);
   }
 }
 
-// ================== Telegram Client ==================
-
-/**
- * Создание и настройка клиента Telegram
- */
-async function createClient() {
-  const client = new TelegramClient(
-    new StringSession(SAVED_SESSION),
-    apiId,
-    apiHash,
-    clientConfig
-  );
-
-  // Обработчики событий подключения
-  client.addEventHandler(update => {
-    if (update.className === 'UpdateConnectionState') {
-      switch (update.state) {
-        case 0: // Disconnected
-          console.warn('Соединение прервано');
-          handleReconnection();
-          break;
-        case 1: // Connecting
-          console.log('Подключаемся...');
-          break;
-        case 2: // Connected
-          console.log('Успешное подключение');
-          reconnectAttempts = 0;
-          break;
-      }
-    }
-  });
-
-  return client;
-}
-
-/**
- * Обработка переподключения
- */
-async function handleReconnection() {
-  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-    console.error('Достигнуто максимальное количество попыток переподключения');
-    return;
-  }
-
-  reconnectAttempts++;
-  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-
-  console.log(`Попытка переподключения #${reconnectAttempts} через ${delay}ms`);
-  
-  await new Promise(resolve => setTimeout(resolve, delay));
-  
-  try {
-    if (clientInstance) {
-      await clientInstance.disconnect();
-    }
-    await startMonitoring();
-  } catch (err) {
-    console.error('Ошибка при переподключении:', err);
-    handleReconnection();
-  }
-}
-
-/**
- * Инициализация мониторинга каналов
- */
-export async function startMonitoring() {
-  try {
-    if (isMonitoring) return;
-
-    clientInstance = await createClient();
-    
-    if (!clientInstance.connected) {
-      console.log('Устанавливаем новое соединение...');
-      await clientInstance.connect();
-    }
-
-    const channelsInfo = await initChannels();
-    setupMessageHandler(channelsInfo);
-    startHealthChecks();
-
-    isMonitoring = true;
-    console.log('👂 Мониторинг каналов активен');
-    
-  } catch (err) {
-    console.error('Ошибка запуска мониторинга:', err);
-    handleReconnection();
-  }
-}
-
-/**
- * Инициализация каналов
- */
-async function initChannels() {
-  const channelsInfo = {};
-  
-  for (const username of CHANNELS_TO_MONITOR) {
-    try {
-      const channel = await clientInstance.getEntity(username);
-      channelsInfo[channel.id.toString()] = {
-        id: channel.id,
-        title: channel.title,
-        username
-      };
-      console.log(`🔎 Канал добавлен: ${channel.title}`);
-    } catch (error) {
-      console.error(`⚠️ Ошибка загрузки канала ${username}:`, error);
-    }
-  }
-  
-  return channelsInfo;
-}
-
-/**
- * Настройка обработчика сообщений
- */
-function setupMessageHandler(channelsInfo) {
-  clientInstance.addEventHandler(async (event) => {
-    try {
-      if (!['UpdateNewChannelMessage', 'UpdateNewMessage'].includes(event.className)) return;
-
-      const msg = event.message;
-      if (!msg.message) return;
-
-      const sourceId = msg.peerId.className === 'PeerChannel' 
-        ? msg.peerId.channelId.toString() 
-        : null;
-
-      if (!sourceId || !channelsInfo[sourceId]) return;
-
-      const channel = channelsInfo[sourceId];
-      console.log(`📩 Новый пост из ${channel.title}`);
-
-      const allThemes = await UserTheme.distinct('themes');
-      
-      await savePost({
-        text: msg.message,
-        channel: channel.title,
-        channelUsername: channel.username,
-        channelId: channel.id,
-        ssilkaPost: `https://t.me/${channel.username}/${msg.id}`,
-        tema: []
-      }, allThemes);
-    } catch (error) {
-      console.error('⚠️ Ошибка обработки сообщения:', error);
-    }
-  });
-}
-
-/**
- * Проверка здоровья соединения
- */
-function startHealthChecks() {
-  // Ping каждые 5 минут
-  setInterval(async () => {
-    try {
-      if (clientInstance?.connected) {
-        await clientInstance.invoke(new Api.Ping({ pingId: BigInt(Date.now()) }));
-      }
-    } catch (err) {
-      console.error('Ping failed:', err);
-      handleReconnection();
-    }
-  }, 300000);
-}
-
-// ================== Вспомогательные функции ==================
-
 function formatThemesText(themes) {
   if (themes.length === 1) return themes[0];
+  
   const last = themes.pop();
   return `${themes.join(', ')} и ${last}`;
 }
 
-/**
- * Инициализация пользователя
- */
+async function initializeClient() {
+  if (clientInstance) return clientInstance;
+
+  const client = new TelegramClient(new StringSession(SAVED_SESSION), apiId, apiHash, {
+    connectionRetries: 5,
+  });
+
+  await client.connect();
+  console.log('✅ Авторизован через сессию');
+  clientInstance = client;
+  return client;
+}
+
+
+const client = await initializeClient();
+
+export async function updateChannelsList() {
+    const allChanle = await UserTheme.distinct('channles');
+
+    return allChanle
+}
+
+export async function startMonitoring() {
+  
+  try {
+
+    isMonitoring = true;
+    const allChanle = await updateChannelsList();
+    console.log(allChanle)
+
+    const channelsInfo = {};
+    for (const username of allChanle) {
+      try {
+        const channel = await client.getEntity(username);
+        channelsInfo[channel.id.toString()] = {
+          id: channel.id,
+          title: channel.title,
+          username
+        };
+        console.log(`🔎 Канал добавлен: ${channel.title}`);
+      } catch (error) {
+        console.error(`⚠️ Ошибка канала ${username}:`, error);
+      }
+    }
+
+    client.addEventHandler(async (event) => {
+      try {
+        if (!['UpdateNewChannelMessage', 'UpdateNewMessage'].includes(event.className)) return;
+  
+        const msg = event.message;
+        if (!msg.message) return;
+  
+        const sourceId = msg.peerId.className === 'PeerChannel' 
+          ? msg.peerId.channelId.toString() 
+          : msg.peerId.className === 'PeerChat' 
+            ? msg.peerId.chatId.toString() 
+            : null;
+  
+        if (!sourceId || !channelsInfo[sourceId]) return;
+  
+        const channel = channelsInfo[sourceId];
+        console.log(`📩 Пост из ${channel.title}`);
+
+        const allThemes = await UserTheme.distinct('themes');
+        console.log(allThemes)
+        
+        await savePost({
+          text: msg.message,
+          channel: channel.title,
+          channelUsername: channel.username,
+          channelId: channel.id,
+          ssilkaPost: `https://t.me/${channel.username}/${msg.id}`,
+          tema: []
+        }, allThemes);
+      } catch (error) {
+        console.error('⚠️ Ошибка обработки:', error);
+      }
+    });
+
+    console.log('👂 Мониторинг каналов запущен');
+  } catch (err) {
+    console.error('❌ Ошибка мониторинга каналов:', err);
+    isMonitoring = false;
+  }
+}
+
 export async function initializeUser(telegramId) {
   try {
     await mongoose.connect('mongodb+srv://vladmorozov2020:Nevskifront208@moroz.gjylj0v.mongodb.net/teleg_news?retryWrites=true&w=majority&appName=Moroz');
@@ -435,71 +370,11 @@ export async function initializeUser(telegramId) {
       await UserTheme.create({ telegramId, themes: ['другое'] });
     }
 
+
     if (!isMonitoring) {
       await startMonitoring();
     }
   } catch (err) {
     console.error('❌ Ошибка инициализации пользователя:', err);
-  }
-}
-
-// ================== Обработка завершения ==================
-
-process.on('SIGINT', async () => {
-  console.log('Завершение работы...');
-  try {
-    if (clientInstance) {
-      await clientInstance.disconnect();
-    }
-    process.exit(0);
-  } catch (err) {
-    console.error('Ошибка при завершении:', err);
-    process.exit(1);
-  }
-});
-
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled Rejection:', reason);
-});
-
-
-export async function scrapeTgstat(query) {
-  try {
-    // 1. Имитируем браузерный запрос
-    const response = await axios.get(`https://tgstat.ru/search?q=${encodeURIComponent(query)}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept-Language': 'ru-RU,ru;q=0.9'
-      }
-    });
-
-    // 2. Парсим HTML
-    const dom = new JSDOM(response.data);
-    const document = dom.window.document;
-    
-    // 3. Извлекаем данные
-    const results = [];
-    const items = document.querySelectorAll('.channel-list-item');
-    
-    items.forEach(item => {
-      const title = item.querySelector('.title')?.textContent.trim();
-      const url = item.querySelector('a[href^="/channel/"]')?.href;
-      const subscribers = item.querySelector('.subscribers')?.textContent.trim();
-      const description = item.querySelector('.description')?.textContent.trim();
-      
-      if (title && url) {
-        results.push({
-          title,
-          url: `https://t.me/${url.split('/')[2]}`,
-          subscribers,
-          description
-        });
-      }
-    });
-
-    return results.slice(0, 20); // Первые 20 результатов
-  } catch (error) {
-    console.error('Ошибка скрейпинга:', error);
-    return [];
   }
 }
