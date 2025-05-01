@@ -91,18 +91,20 @@ bot.onText(/\/start/, async (msg) => {
     const keyboard = await generateKeyboard(msg.from.id);
     activeUsers.add(msg.from.id);
     
-    const welcomeMessage = `
-Каналы, посты которых принимает бот:
-1. ВШГУ Президентской академии
-2. Технологическое лидерство России
-3. Канал Алексея Комиссарова
-4. Личность в системах управления
-5. Институт ЭМИТ РАНХиГС
-6. РАНХиГС. Новости
-    `.trim();
-    
-    await bot.sendMessage(msg.chat.id, welcomeMessage);
-    await bot.sendMessage(msg.chat.id, 'Выберите тему:', keyboard);
+    await bot.sendMessage(msg.chat.id, await bot.sendMessage(
+      chatId,
+      `✨ <b>Добро пожаловать, ${msg.from.first_name}!</b> 👋\n\n` +
+      `Я — ваш умный помощник для мониторинга Telegram-каналов. Вот что вам нужно знать:\n\n` +
+      `📌 <b>Как это работает:</b>\n` +
+      `1. Вы <b>добавляете</b> интересные темы (криптовалюта, IT, наука и др.)\n` +
+      `2. Я <b>анализирую</b> новые посты из каналов которые вы добавите и определяю их тематику (по вашим темам)\n` +
+      `3. Вы <b>получаете</b> персональные уведомления когда приходин новый пост\n\n` +
+      `🛠 <b>Что можно сделать:</b>`,
+      {
+        parse_mode: 'HTML',
+        keyboard
+      }
+    ))
   } catch (err) {
     console.error('Ошибка в обработчике /start:', err);
     await bot.sendMessage(msg.chat.id, 'Произошла ошибка. Пожалуйста, попробуйте позже.');
