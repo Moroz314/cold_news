@@ -405,6 +405,7 @@ bot.onText(/^Удалить канал (.+)$/, async (msg, match) => {
     }
     
     await user.removeChannl(channelName);
+    await startMonitoring()
     const keyboard = await generateKeyboard(msg.from.id);
     await bot.sendMessage(msg.chat.id, `Канал "${channelName}" удален!`, keyboard);
     

@@ -226,8 +226,7 @@ async function savePost(postData, allThemes) {
 
     const subscribedUsers = await UserTheme.find({
       themes: { 
-        $in: notificationThemes,
-        $not: { $eq: ["другое"] } 
+        $in: notificationThemes
       }
     });
 
@@ -312,10 +311,6 @@ let eventHandler = null;
 
 export async function startMonitoring() {
   try {
-    if (isMonitoring) {
-      console.log('Мониторинг уже запущен');
-      return;
-    }
 
     isMonitoring = true;
     const allChanle = await updateChannelsList();
