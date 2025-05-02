@@ -12,7 +12,7 @@ const agent = new https.Agent({
   rejectUnauthorized: false
 });
 
-// Конфигурационные константы
+
 const apiId = 21571955;
 const apiHash = 'e3e614651aba0bffc9b26526a3c83914';
 
@@ -29,7 +29,7 @@ const CHANNELS_TO_MONITOR = [
   'pers_conf'
 ];
 
-// Модель данных
+
 export const PostModels = {
   post_news: mongoose.model('newsPost', new mongoose.Schema({
     text: String,
@@ -47,7 +47,7 @@ export const PostModels = {
   }), 'news_posts'),
 };
 
-// GigaChat API конфигурация
+
 const GIGACHAT_AUTH_URL = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth';
 const GIGACHAT_API_URL = 'https://gigachat.devices.sberbank.ru/api/v1/chat/completions';
 const CLIENT_ID = '5ee1f6ee-f820-4866-b507-9284a63add14';
@@ -56,7 +56,7 @@ const CLIENT_SECRET = 'fb8ebde0-8ec4-44e3-81b7-f06f2d15ade0';
 let gigaChatToken = null;
 let tokenExpiration = 0;
 
-// Глобальные переменные для управления подключением
+
 let clientInstance = null;
 let isMonitoring = false;
 
@@ -205,17 +205,17 @@ const processedPosts = new Map();
 
 async function savePost(postData, allThemes) {
   try {
-    // Проверяем, не обрабатывали ли мы уже этот пост
+
     const postKey = `${postData.channelId}_${postData.ssilkaPost}`;
     if (processedPosts.has(postKey)) {
       console.log(`Пост уже обработан: ${postKey}`);
       return;
     }
     
-    // Помечаем пост как обработанный
+
     processedPosts.set(postKey, true);
     
-    // Остальной код функции savePost без изменений
+
     const postThemes = await classifyPost(postData.text, allThemes);
     console.log("Извлечённые темы:", postThemes);
 
@@ -331,7 +331,7 @@ export async function startMonitoring() {
       }
     }
 
-    // Удаляем предыдущий обработчик, если он был
+ 
     if (eventHandler) {
       client.removeEventHandler(eventHandler);
     }

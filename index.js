@@ -6,11 +6,14 @@ import UserTheme from './Them_model.js';
 import { PostModels, startMonitoring } from './components/receiving_post.js';
 import { initializeUser } from './components/receiving_post.js';
 import { client } from './components/receiving_post.js';
+import axios from 'axios';
 
 const TOKEN = "8118538983:AAE-g9pWvdC6qlOZj2h6ywS2OQAZt4S4OTo";
 
 //const TOKEN = "7596311250:AAG3mH27Mt8GyfItVgZzKujx8NNqgoxI7eg";
 export const bot = new TelegramBot(TOKEN, {polling: true});
+
+const TGStat = 'f5334d6a13b2563bcd1b0df84ae608c0 '
 
 const activeUsers = new Set();
 
@@ -43,6 +46,28 @@ async function getOrCreateUser(telegramId) {
     console.error('Ошибка в getOrCreateUser:', err);
     throw err;
   }
+}
+
+async function serchTGStat(tems){
+  try{
+    const response = await axios.get('https://api.tgstat.ru/channels/search',{
+      params:{
+        token: TGStat,
+        q: tems,
+        lang: 'ru'
+      }})
+
+      if (response.data.status === 'ok') {
+        const channles = response.data.response.items
+        console.log(channles)
+        return channles
+      } else {
+        console.error('ошибка', response.data.error)
+      }
+    } catch (error){
+      console.error('ошибка запроса', error.message)
+      return []
+    }
 }
 
 
@@ -259,7 +284,13 @@ bot.on('message', async (msg) => {
 
     try {
       await user.addTheme(text);
+      const chlannlesserch = await serchTGStat(text)
+      const chlannlesserchlist = chlannlesserch
+      .map((channel, index) => `${index + 1}. Название: ${channel.title} ссылка: ${channel.link}`)
+      .join('\n');
+      console.log(chlannlesserchlist)
       const keyboard = await generateKeyboard(userId);
+      await bot.sendMessage(chatId, `Вот возможное каналы по вашей теме: \n ${chlannlesserchlist}`);
       await bot.sendMessage(chatId, `✅ Тема "${text}" успешно добавлена!`, keyboard);
     } catch (err) {
       console.error('Ошибка добавления темы:', err);
