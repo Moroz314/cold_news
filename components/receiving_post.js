@@ -7,27 +7,20 @@ import https from "https";
 import qs from "qs";
 import { v4 as uuidv4 } from 'uuid';
 import { bot } from '../index.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const agent = new https.Agent({  
   rejectUnauthorized: false
 });
 
 
-const apiId = 21571955;
-const apiHash = 'e3e614651aba0bffc9b26526a3c83914';
+const apiId = process.env.apiId;
+const apiHash = process.env.apiHash;;
 
-const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNTEBu615Dwi4/cWGjCutGJ/pSqglfbdS6IHFzZt6pbdInGjqU6zuGoOCAr36JdkTTq6QctRrx+isG4yttszsS4yt057dOzRvd5STOyvjUnrZC9kNm0gq2Yq2O3yVCZSU/rvkx9wjPDZiFeU5EWAmxgLnQZ2lxVobUHLWdbH6Q4RYvUmiJhmG5X91FL57lbApalg9xLOrwjyTtcWBtjFVxsfJjfThJ+dc1zRWjtuxgA1W/pzqgWn28+IpmRIFc1JmSiaLBnMTjamFdhfTEruaKtkybbM4pHhyOPUWyvlJBBvMpfibS9MgmSozSpjxsdPkXgFuXWAFd9KtQ8X3QpsfmXwe1hc=';
-//const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNTEBu0p0tVucDIJqlzop5XB+3rNc+FBKZBx/6YYjUTM08lCVByWtRjouSf6qLSBhFs0WmL3RNBwlUSd/nhbs9VPBKtqrMuzQT+hrEHQirPklG/vJKAP/z8jjm9z0NLB2J2Ax/FIVOmwirv8Pg6pRcsFRDvg0cwXoRLcn4F9eCvZi5u3hwPPcMRHR8Snl79jgcBvTWgmWWe+eHuihix44LPjKL8kqvDsd/mdf/b0ddEDpT4I+4tlg+fzjEOVRhsIKJScfR+PVhBhbrKXJOqJDFD+4gqopqJ31ACAt00tcbJQExgEpZOcNQ0+VJ/2MdPHcbD4gX8QYDHmeKZwTlaGly1tcAeo=';
-const CHANNELS_TO_MONITOR = [
-  'testtest314',
-  'test333234',
-  'akomissarov2022',
-  'mainranepa',
-  'gspmranepa',
-  'Emit_ranepa',
-  'CDTOonline',
-  'pers_conf'
-];
+const SAVED_SESSION = process.env.SAVED_SESSION_serv
+//const SAVED_SESSION = process.env.SAVED_SESSION_test
 
 
 export const PostModels = {
@@ -48,10 +41,10 @@ export const PostModels = {
 };
 
 
-const GIGACHAT_AUTH_URL = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth';
-const GIGACHAT_API_URL = 'https://gigachat.devices.sberbank.ru/api/v1/chat/completions';
-const CLIENT_ID = '5ee1f6ee-f820-4866-b507-9284a63add14';
-const CLIENT_SECRET = 'fb8ebde0-8ec4-44e3-81b7-f06f2d15ade0';
+const GIGACHAT_AUTH_URL = process.env.GIGACHAT_AUTH_URL
+const GIGACHAT_API_URL = process.env.GIGACHAT_API_URL
+const CLIENT_ID = process.env.CLIENT_ID
+const CLIENT_SECRET =process.env.CLIENT_SECRET
 
 let gigaChatToken = null;
 let tokenExpiration = 0;

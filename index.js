@@ -7,20 +7,23 @@ import { PostModels, startMonitoring } from './components/receiving_post.js';
 import { initializeUser } from './components/receiving_post.js';
 import { client } from './components/receiving_post.js';
 import axios from 'axios';
+import dotenv from 'dotenv';
 
-const TOKEN = "8118538983:AAE-g9pWvdC6qlOZj2h6ywS2OQAZt4S4OTo";
+dotenv.config();
 
-//const TOKEN = "7596311250:AAG3mH27Mt8GyfItVgZzKujx8NNqgoxI7eg";
+const TOKEN = process.env.TOKEN_serv;
+
+//const TOKEN = process.env.TOKEN_test;
 export const bot = new TelegramBot(TOKEN, {polling: true});
 
-const TGStat = 'f5334d6a13b2563bcd1b0df84ae608c0 '
+const TGStat = process.env.TGStat
 
 const activeUsers = new Set();
 
 
 async function connectDB() {
   try {
-    await mongoose.connect('mongodb+srv://vladmorozov2020:Nevskifront208@moroz.gjylj0v.mongodb.net/teleg_news?retryWrites=true&w=majority&appName=Moroz');
+    await mongoose.connect(process.env.MONGOdb);
     console.log('✅ MongoDB connected');
   } catch (err) {
     console.error('❌ MongoDB connection error:', err);
