@@ -287,13 +287,12 @@ bot.on('message', async (msg) => {
 
     try {
       await user.addTheme(text);
-      const chlannlesserch = await serchTGStat(text)
-      const chlannlesserchlist = chlannlesserch
-      .map((channel, index) => `${index + 1}. Название: ${channel.title} ссылка: ${channel.link}`)
-      .join('\n');
-      console.log(chlannlesserchlist)
+      //const chlannlesserch = await serchTGStat(text)
+      //const chlannlesserchlist = chlannlesserch
+      //.map((channel, index) => `${index + 1}. Название: ${channel.title} ссылка: ${channel.link}`)
+      //.join('\n');
       const keyboard = await generateKeyboard(userId);
-      await bot.sendMessage(chatId, `Вот возможное каналы по вашей теме: \n ${chlannlesserchlist}`);
+      //await bot.sendMessage(chatId, `Вот возможное каналы по вашей теме: \n ${chlannlesserchlist}`);
       await bot.sendMessage(chatId, `✅ Тема "${text}" успешно добавлена!`, keyboard);
     } catch (err) {
       console.error('Ошибка добавления темы:', err);
