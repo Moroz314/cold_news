@@ -18,10 +18,10 @@ const channelsToMonitor = [
     "pers_conf", 
 ];
 
-const GIGACHAT_AUTH_URL = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth';
-const GIGACHAT_API_URL = 'https://gigachat.devices.sberbank.ru/api/v1/chat/completions';
-const CLIENT_ID = '5ee1f6ee-f820-4866-b507-9284a63add14';
-const CLIENT_SECRET = '542e33a1-b5a2-4609-837c-55f91da71525';
+const GIGACHAT_AUTH_URL = '';
+const GIGACHAT_API_URL = '';
+const CLIENT_ID = '';
+const CLIENT_SECRET = '';
 
 const agent = new https.Agent({  
     rejectUnauthorized: false
