@@ -2,7 +2,7 @@ import { TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions/index.js';
 import input from 'input';
 
-const apiId = ;
+const apiId = '';
 const apiHash = '';
 
 // Создаем новую пустую сессию
