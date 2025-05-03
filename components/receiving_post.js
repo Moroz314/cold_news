@@ -88,7 +88,7 @@ async function classifyPost(postText, allThemes, retries = 3) {
     await new Promise(resolve => setTimeout(resolve, 1000));
     const token = await getGigaChatToken();
 
-    const prompt = `Проанализируй новостной пост и определи, к каким темам из списка он относится.
+    const prompt = `Проанализируй новостной пост и определи, к каким темам из списка он относится. Даже если не на прямую но близко по теме всё равно.
       Список тем: ${allThemes.join(", ")}.
       Ответ должен быть в формате: "тема1, тема2, тема3".
       Если пост не подходит ни к одной теме, напиши "другое".
