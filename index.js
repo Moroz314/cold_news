@@ -330,7 +330,8 @@ bot.on('message', async (msg) => {
 
   if (user.themes.includes(text)) {
     try {
-      const posts = await PostModels.post_news.find({ tema: text }).sort({ date: 1 }).limit(5);
+      const user = await getOrCreateUser(userId);
+      const posts = await PostModels.post_news.find({ tema: text,  channelUsername: { $in: user.channles } }).sort({ date: 1 }).limit(5);
       
       if (!posts.length) {
         return bot.sendMessage(chatId, `По теме "${text}" пока нет сохранённых постов.`);

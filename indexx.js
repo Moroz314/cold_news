@@ -6,11 +6,11 @@ import https from "https"
 import qs from "qs"
 import { v4 as uuidv4 } from 'uuid';
 
-const TOKEN = '8118538983:AAE-g9pWvdC6qlOZj2h6ywS2OQAZt4S4OTo'
+const TOKEN = ''
 const bot = new TelegramBot(TOKEN, {polling: true});
-const SAVED_SESSION = '1AgAOMTQ5LjE1NC4xNjcuNTABu6pgBR8VHbSFv6qy6J7RY0LXrF46EXmZRlaAhuSBRanxIPF474QdTyh5jexYIrwaG6D1olCpb0SlHWr45X+ku85XRSiqFFwRuKYoU9kbpru5C8PuDkdA3fhKaYIlFjocAbD2+RLjh4PTevk9L+BhOcLj6zgzxngJF2RdPiPrl/To00xlxapAmyj1Ot9X5igqJv7GBZXlC65NEbzxiKEExzA7ZhuLpXOREwGlC4wXDFIcWRBxvT/RRe7z9OsQYkUosH1izPHYsNsoKOhufFFTZNYA295f6z6O2HZAH4XS5ws+atxp/V1K66Vim03iGzy7NdhQcW9I2npuOvToB/taS08=';
-const apiId = 21571955;
-const apiHash = 'e3e614651aba0bffc9b26526a3c83914';
+const SAVED_SESSION = '';
+const apiId = ;
+const apiHash = '';
 
 const channelsToMonitor = [
     "gspmranepa",
@@ -18,10 +18,10 @@ const channelsToMonitor = [
     "pers_conf", 
 ];
 
-const GIGACHAT_AUTH_URL = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth';
-const GIGACHAT_API_URL = 'https://gigachat.devices.sberbank.ru/api/v1/chat/completions';
-const CLIENT_ID = '5ee1f6ee-f820-4866-b507-9284a63add14';
-const CLIENT_SECRET = '542e33a1-b5a2-4609-837c-55f91da71525';
+const GIGACHAT_AUTH_URL = '';
+const GIGACHAT_API_URL = '';
+const CLIENT_ID = '';
+const CLIENT_SECRET = '';
 
 const agent = new https.Agent({  
     rejectUnauthorized: false
