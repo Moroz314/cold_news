@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 const TOKEN = ''
 const bot = new TelegramBot(TOKEN, {polling: true});
 const SAVED_SESSION = '';
-const apiId = ;
+const apiId = '';
 const apiHash = '';
 
 const channelsToMonitor = [
