@@ -16,7 +16,7 @@ const agent = new https.Agent({
 });
 
 
-const apiId = process.env.apiId;
+const apiId = 21571955;
 const apiHash = process.env.apiHash;;
 
 const SAVED_SESSION = process.env.SAVED_SESSION_serv
@@ -213,15 +213,22 @@ async function savePost(postData, allThemes) {
     console.log("Извлечённые темы:", postThemes);
 
     postData.tema = postThemes;
+
     const savedPost = await new PostModels.post_news(postData).save();
 
     const notificationThemes = postThemes;
+    const chanlsubscribe = postData.channelUsername
+
 
     const subscribedUsers = await UserTheme.find({
       themes: { 
         $in: notificationThemes
+      },
+      channles : { 
+        $in: chanlsubscribe
       }
     });
+
 
     for (const user of subscribedUsers) {
       try {
@@ -252,7 +259,7 @@ async function savePost(postData, allThemes) {
             }
           }
         );
-        
+        await new Promise(resolve => setTimeout(resolve, 1000));
         console.log(`📨 Уведомление отправлено ${user.telegramId} по темам: ${themesText}`);
       } catch (err) {
         console.error(`Ошибка отправки пользователю ${user.telegramId}:`, err.message);
