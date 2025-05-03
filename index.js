@@ -3,7 +3,7 @@ import { TelegramClient } from 'telegram';
 import { Api } from 'telegram/tl/index.js';
 import mongoose from 'mongoose';
 import UserTheme from './Them_model.js';
-import { PostModels, startMonitoring } from './components/receiving_post.js';
+import { PostModels, startMonitoring, searchChannel } from './components/receiving_post.js';
 import { initializeUser } from './components/receiving_post.js';
 import { client } from './components/receiving_post.js';
 import axios from 'axios';
@@ -276,23 +276,41 @@ bot.on('message', async (msg) => {
 
   if (userState?.action === 'addingTheme') {
     userStates.delete(chatId);
-
+  
     if (text.length < 2) {
       return bot.sendMessage(chatId, 'Название темы должно содержать минимум 2 символа');
     }
-
+  
     if (user.themes.includes(text)) {
       return bot.sendMessage(chatId, 'Такая тема уже существует!');
     }
-
+  
     try {
       await user.addTheme(text);
-      //const chlannlesserch = await serchTGStat(text)
-      //const chlannlesserchlist = chlannlesserch
-      //.map((channel, index) => `${index + 1}. Название: ${channel.title} ссылка: ${channel.link}`)
-      //.join('\n');
+      const channels = await searchChannel(text); // Добавлен await
+  
+      if (channels.length === 0) {
+        const keyboard = await generateKeyboard(userId);
+        await bot.sendMessage(chatId, `✅ Тема "${text}" добавлена, но каналов не найдено`, keyboard);
+        return;
+      }
+  
+      await bot.sendMessage(chatId, `🔍 Результаты поиска по "${text}":\n\n`);
+      
+      // Отправка найденных каналов
+      for (const channel of channels) {
+        const link = channel.username 
+          ? `https://t.me/${channel.username}`
+          : `ID: ${channel.id}`;
+        
+        await bot.sendMessage(
+          chatId,
+          `📢 <b>${channel.title}</b>\n🔗 ${link}`,
+          { parse_mode: 'HTML' }
+        );
+      }
+  
       const keyboard = await generateKeyboard(userId);
-      //await bot.sendMessage(chatId, `Вот возможное каналы по вашей теме: \n ${chlannlesserchlist}`);
       await bot.sendMessage(chatId, `✅ Тема "${text}" успешно добавлена!`, keyboard);
     } catch (err) {
       console.error('Ошибка добавления темы:', err);

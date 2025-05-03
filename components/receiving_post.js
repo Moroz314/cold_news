@@ -1,4 +1,5 @@
 import { TelegramClient } from 'telegram';
+import { Api } from 'telegram/tl/index.js';
 import { StringSession } from 'telegram/sessions/index.js';
 import UserTheme from '../Them_model.js';
 import mongoose from 'mongoose';
@@ -79,6 +80,22 @@ async function getGigaChatToken() {
     return gigaChatToken;
   } catch (error) {
     console.error('⚠️ Ошибка получения токена:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function searchChannel(query, limit=10){
+  try {
+    const result = await client.invoke(
+      new Api.contacts.Search({
+        q: query,
+        limit: limit
+      })
+    )
+
+    return result.chats.filter(chat => chat.className === 'Channel')
+  } catch (error) {
+    console.error('Ошибка поиска:', error);
     throw error;
   }
 }
