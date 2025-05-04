@@ -3,7 +3,7 @@ import { TelegramClient } from 'telegram';
 import { Api } from 'telegram/tl/index.js';
 import mongoose from 'mongoose';
 import UserTheme from './Them_model.js';
-import { PostModels, startMonitoring, searchChannel } from './components/receiving_post.js';
+import { PostModels, startMonitoring, searchChannel , searchMessages} from './components/receiving_post.js';
 import { initializeUser } from './components/receiving_post.js';
 import { client } from './components/receiving_post.js';
 import axios from 'axios';
@@ -79,11 +79,9 @@ async function serchTGStat(tems){
 async function generateKeyboard(telegramId) {
   const user = await getOrCreateUser(telegramId);
   const buttons = [
-    ...user.themes.map(theme => [{text: theme}]),
-    [
-      {text: 'Настройка тем'} ,
-      {text: 'Настройка каналов'} ,
-      {text: 'Отключить уведомления'}
+      ...user.themes.map(theme => [{text: theme}]), 
+      [
+      {text: '🔙 Назад'}
     ]
   ];
   return { 
@@ -93,6 +91,22 @@ async function generateKeyboard(telegramId) {
       one_time_keyboard: false
     } 
   };
+}
+
+const start_btn = {
+  reply_markup: { 
+    keyboard: [[
+      {text: '📃Мои темы'},
+      {text: '🔎Поиск постов'}
+    ],
+    [
+      {text: '🛠️Настройка тем'} ,
+      {text: '🛠️Настройка каналов'} ,
+      {text: '❌Отключить уведомления'}
+    ]], 
+    resize_keyboard: true,
+    one_time_keyboard: false
+  } 
 }
 const key_tems = {
   reply_markup: { 
@@ -122,7 +136,7 @@ const key_chanle = {
 bot.onText(/\/start/, async (msg) => {
   try {
     await initializeUser(msg.from.id);
-    const keyboard = await generateKeyboard(msg.from.id);
+    const keyboard_tems = await generateKeyboard(msg.from.id);
     activeUsers.add(msg.from.id);
     
    await bot.sendMessage(
@@ -139,7 +153,7 @@ bot.onText(/\/start/, async (msg) => {
       }
       
     )
-    await bot.sendMessage(msg.chat.id, 'что можно сделать:', keyboard)
+    await bot.sendMessage(msg.chat.id, 'что можно сделать:', start_btn)
   } catch (err) {
     console.error('Ошибка в обработчике /start:', err);
     await bot.sendMessage(msg.chat.id, 'Произошла ошибка. Пожалуйста, попробуйте позже.');
@@ -219,10 +233,18 @@ bot.onText(/^Добавить канал$/, async (msg) => {
   );
 });
 
+bot.onText(/^🔎Поиск постов$/, async (msg) => {
+  userStates.set(msg.chat.id, { action: 'SerchPosts' });
+  await bot.sendMessage(
+    msg.chat.id, 
+    `Введите ключевые слова для поиска постов (в каналах которые вы добавили в бота):`, start_btn
+  );
+});
+
 bot.onText(/^Посмотреть каналы$/, async (msg) => {
   try {
     const user = await getOrCreateUser(msg.from.id);
-    const keyboard = await generateKeyboard(msg.from.id);
+
     
     // Проверяем, есть ли у пользователя каналы
     if (!user.channles || user.channles.length === 0) {
@@ -269,13 +291,74 @@ bot.on('message', async (msg) => {
 
   const userState = userStates.get(chatId);
   const user = await getOrCreateUser(userId);
-  if(text == 'Настройка тем'){
+  
+  if(text == '🛠️Настройка тем'){
     await bot.sendMessage(chatId, `настройка тем:`, key_tems);
   }
-  if(text == 'Настройка каналов'){
+  if(text == '🛠️Настройка каналов'){
     await bot.sendMessage(chatId, `настройка каналов:`, key_chanle);
   }
+  if(text == '📃Мои темы'){
+    const keyboard_tems = await generateKeyboard(msg.from.id);
+    await bot.sendMessage(chatId, `Ваши темы:`, keyboard_tems);
+  }
+  if(text == '🔙 Назад'){
+    await bot.sendMessage(msg.chat.id, 'что можно сделать:',start_btn)
+  }
 
+  if (userState?.action === 'SerchPosts'){
+    userStates.delete(chatId);
+
+    if (text.length < 2) {
+      return bot.sendMessage(chatId, 'Название темы должно содержать минимум 2 символа');
+    }
+    try {
+        const user = await getOrCreateUser(msg.from.id);
+    
+        
+        // Проверяем, есть ли у пользователя каналы
+        if (!user.channles || user.channles.length === 0) {
+          return await bot.sendMessage(
+            msg.chat.id,
+            'У вас пока нет сохраненных каналов.'
+          );
+        }   
+    
+        // Формируем список каналов в виде текста
+        const channelsList = user.channles
+
+        searchMessages(channelsList, text).then(async (results) => {
+          for (const { channel, messages } of results) {
+            try {
+              // Отправляем заголовок с информацией о канале
+              await bot.sendMessage(
+                chatId,
+                `=== Найдено в ${channel} (${messages.length} сообщений) ===`
+              );
+        
+              // Отправляем сообщения с задержкой (чтобы избежать флуда)
+              for (const msg of messages) {
+                try {
+                  await bot.sendMessage(chatId, msg);
+                  await new Promise(resolve => setTimeout(resolve, 300)); // Задержка 300мс
+                } catch (msgError) {
+                  console.error(`Ошибка отправки сообщения: ${msgError.message}`);
+                }
+              }
+            } catch (channelError) {
+              console.error(`Ошибка обработки канала ${channel}: ${channelError.message}`);
+            }
+          }
+        }).catch(error => {
+          console.error('Ошибка поиска:', error);
+          bot.sendMessage(chatId, '⚠️ Произошла ошибка при поиске сообщений');
+        });
+      
+    } catch (error) {
+      
+    }
+    return;
+  }
   if (userState?.action === 'addingTheme') {
     userStates.delete(chatId);
   
@@ -289,11 +372,11 @@ bot.on('message', async (msg) => {
   
     try {
       await user.addTheme(text);
-      const channels = await searchChannel(text); // Добавлен await
+      const channels = await searchChannel(text);
   
       if (channels.length === 0) {
-        const keyboard = await generateKeyboard(userId);
-        await bot.sendMessage(chatId, `✅ Тема "${text}" добавлена, но каналов не найдено`, keyboard);
+
+        await bot.sendMessage(chatId, `✅ Тема "${text}" добавлена, но каналов не найдено`, start_btn);
         return;
       }
   
@@ -312,8 +395,7 @@ bot.on('message', async (msg) => {
         );
       }
   
-      const keyboard = await generateKeyboard(userId);
-      await bot.sendMessage(chatId, `✅ Тема "${text}" успешно добавлена!`, keyboard);
+      await bot.sendMessage(chatId, `✅ Тема "${text}" успешно добавлена!`, start_btn);
     } catch (err) {
       console.error('Ошибка добавления темы:', err);
       await bot.sendMessage(chatId, '❌ Произошла ошибка при добавлении темы');
@@ -338,9 +420,8 @@ bot.on('message', async (msg) => {
       await client.invoke(new Api.channels.JoinChannel({
         channel: username
       }));
-      const keyboard = await generateKeyboard(userId);
       await startMonitoring()
-      await bot.sendMessage(chatId, `✅ Канал "${username}" успешно добавлена!`, keyboard);
+      await bot.sendMessage(chatId, `✅ Канал "${username}" успешно добавлена!`, start_btn);
     } catch (err) {
       console.error('Ошибка добавления канала:', err);
       await bot.sendMessage(chatId, '❌ Произошла ошибка при добавлении канала');
@@ -406,14 +487,14 @@ bot.onText(/^Удалить тему$/, async (msg) => {
       return bot.sendMessage(msg.chat.id, 'У вас нет тем для удаления');
     }
     
-    const keyboard = {
+    const keyboard_tems = {
       reply_markup: {
         keyboard: user.themes.map(themss => [{text: `Удалить тему ${themss}`}]),
         resize_keyboard: true
       }
     };
     
-    await bot.sendMessage(msg.chat.id, 'Выберите тему для удаления:', keyboard);
+    await bot.sendMessage(msg.chat.id, 'Выберите тему для удаления:', keyboard_tems);
   } catch (err) {
     console.error('Ошибка в обработчике удаления темы:', err);
     await bot.sendMessage(msg.chat.id, 'Произошла ошибка при обработке запроса');
@@ -432,8 +513,8 @@ bot.onText(/^Удалить тему (.+)$/, async (msg, match) => {
     }
     
     await user.removeTheme(themesName);
-    const keyboard = await generateKeyboard(msg.from.id);
-    await bot.sendMessage(msg.chat.id, `Тема "${themesName}" удалена!`, keyboard);
+    const keyboard_tems = await generateKeyboard(msg.from.id);
+    await bot.sendMessage(msg.chat.id, `Тема "${themesName}" удалена!`, start_btn);
   } catch (err) {
     console.error('Ошибка при удалении темы:', err);
     await bot.sendMessage(msg.chat.id, 'Произошла ошибка при удалении темы');
@@ -448,14 +529,14 @@ bot.onText(/^Удалить канал$/, async (msg) => {
       return bot.sendMessage(msg.chat.id, 'У вас нет каналов для удаления');
     }
     
-    const keyboard = {
+    const keyboard_tems = {
       reply_markup: {
         keyboard: user.channles.map(channel => [{text: `Удалить канал ${channel}`}]),
         resize_keyboard: true
       }
     };
     
-    await bot.sendMessage(msg.chat.id, 'Выберите канал для удаления:', keyboard);
+    await bot.sendMessage(msg.chat.id, 'Выберите канал для удаления:', start_btn);
   } catch (err) {
     console.error('Ошибка в обработчике удаления каналов:', err);
     await bot.sendMessage(msg.chat.id, 'Произошла ошибка при обработке запроса');
@@ -473,8 +554,8 @@ bot.onText(/^Удалить канал (.+)$/, async (msg, match) => {
     
     await user.removeChannl(channelName);
     await startMonitoring()
-    const keyboard = await generateKeyboard(msg.from.id);
-    await bot.sendMessage(msg.chat.id, `Канал "${channelName}" удален!`, keyboard);
+    const keyboard_tems = await generateKeyboard(msg.from.id);
+    await bot.sendMessage(msg.chat.id, `Канал "${channelName}" удален!`, start_btn);
     
     // Обновляем мониторинг после удаления канала
     await startMonitoring();

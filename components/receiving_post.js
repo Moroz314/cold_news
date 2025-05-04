@@ -12,9 +12,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const agent = new https.Agent({  
-  rejectUnauthorized: false
-});
 
 
 const apiId = 21571955;
@@ -51,7 +48,7 @@ let gigaChatToken = null;
 let tokenExpiration = 0;
 
 
-let clientInstance = null;
+
 let isMonitoring = false;
 
 async function getGigaChatToken() {
@@ -83,6 +80,56 @@ async function getGigaChatToken() {
     throw error;
   }
 }
+
+let clientInstance = null;
+async function initializeClient() {
+  if (clientInstance) return clientInstance;
+
+  const client = new TelegramClient(new StringSession(SAVED_SESSION), apiId, apiHash, {
+    connectionRetries: 5,
+  });
+
+  await client.connect();
+  console.log('✅ Авторизован через сессию');
+  clientInstance = client;
+  return client;
+}
+export const client = await initializeClient();
+const agent = new https.Agent({  
+  rejectUnauthorized: false
+});
+
+export async function searchMessages(channels, keyword) {
+  try {
+    const results = await Promise.all(
+      channels.map(async (channel) => {
+        try {
+          // Получаем entity канала
+          const entity = await client.getEntity(channel);
+          
+          // Ищем сообщения
+          const messages = await client.getMessages(entity, {
+            search: keyword,
+            limit: 100
+          });
+
+          return {
+            channel,
+            messages: messages.map(msg => msg.text)
+          };
+        } catch (err) {
+          console.error(`Error in channel ${channel}:`, err);
+          return { channel, messages: [] };
+        }
+      })
+    );
+    return results;
+  } catch (err) {
+    console.error('Global error:', err);
+    return channels.map(channel => ({ channel, messages: [] }));
+  }
+}
+
 
 export async function searchChannel(query, limit=10){
   try {
@@ -330,21 +377,10 @@ function formatThemesText(themes) {
   return `${themes.join(', ')} и ${last}`;
 }
 
-async function initializeClient() {
-  if (clientInstance) return clientInstance;
-
-  const client = new TelegramClient(new StringSession(SAVED_SESSION), apiId, apiHash, {
-    connectionRetries: 5,
-  });
-
-  await client.connect();
-  console.log('✅ Авторизован через сессию');
-  clientInstance = client;
-  return client;
-}
 
 
-export const client = await initializeClient();
+
+
 
 export async function updateChannelsList() {
     const allChanle = await UserTheme.distinct('channles');
