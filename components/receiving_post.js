@@ -352,12 +352,40 @@ export async function updateChannelsList() {
     return allChanle
 }
 
+async function cleanOldPosts() {
+  const MAX_AGE = 3 * 24 * 60 * 60 * 1000; // 10 дней
+  const MAX_POSTS = 10000;
+  
+
+  const ageResult = await PostModels.post_news.deleteMany({
+    date: { $lt: new Date(Date.now() - MAX_AGE) }
+  });
+  console.log(`Удалено ${ageResult.deletedCount} постов старше 10 дней`);
+  
+  const count = await PostModels.post_news.countDocuments();
+  if (count > MAX_POSTS) {
+    const toDelete = count - MAX_POSTS;
+    const oldestPosts = await PostModels.post_news.find()
+      .sort({ date: 1 })
+      .limit(toDelete)
+      .select('_id');
+    
+    const countResult = await PostModels.post_news.deleteMany({
+      _id: { $in: oldestPosts.map(p => p._id) }
+    });
+    console.log(`Удалено ${countResult.deletedCount} самых старых постов (лимит ${MAX_POSTS})`);
+  }
+}
+
 let eventHandler = null;
 
 export async function startMonitoring() {
   try {
 
     isMonitoring = true;
+
+    await cleanOldPosts();
+
     const allChanle = await updateChannelsList();
     console.log(allChanle);
 
