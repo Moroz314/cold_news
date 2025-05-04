@@ -353,8 +353,8 @@ export async function updateChannelsList() {
 }
 
 async function cleanOldPosts() {
-  const MAX_AGE = 3 * 24 * 60 * 60 * 1000; // 10 дней
-  const MAX_POSTS = 10000;
+  const MAX_AGE = 10 * 24 * 60 * 60 * 1000; // 10 дней
+  const MAX_POSTS = 1000;
   
 
   const ageResult = await PostModels.post_news.deleteMany({

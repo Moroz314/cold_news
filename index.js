@@ -9,6 +9,8 @@ import { client } from './components/receiving_post.js';
 import axios from 'axios';
 import dotenv from 'dotenv';
 
+const userPostPagination = new Map();
+
 dotenv.config();
 
 const TOKEN = process.env.TOKEN_serv;
@@ -349,13 +351,26 @@ bot.on('message', async (msg) => {
   if (user.themes.includes(text)) {
     try {
       const user = await getOrCreateUser(userId);
-      const posts = await PostModels.post_news.find({ tema: text,  channelUsername: { $in: user.channles } }).sort({ date: 1 }).limit(5);
+
+      userPostPagination.set(userId, {
+        theme: text,
+        offset: 0
+      });
+
+      const posts = await PostModels.post_news.find({ 
+        tema: text,  
+        channelUsername: { $in: user.channles } 
+      })
+      .sort({ date: -1 }) // Сначала новые
+      .skip(0)
+      .limit(5);
       
       if (!posts.length) {
         return bot.sendMessage(chatId, `По теме "${text}" пока нет сохранённых постов.`);
       }
+      const reversedPosts = [...posts].reverse();
 
-      for (const post of posts) {
+      for (const post of reversedPosts) {
         const postThemes = post.tema.join(", ");
         const postMessage = `
 <b>Темы:</b> ${postThemes}
