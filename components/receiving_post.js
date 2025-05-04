@@ -104,10 +104,9 @@ export async function searchMessages(channels, keyword) {
     const results = await Promise.all(
       channels.map(async (channel) => {
         try {
-          // Получаем entity канала
+
           const entity = await client.getEntity(channel);
           
-          // Ищем сообщения
           const messages = await client.getMessages(entity, {
             search: keyword,
             limit: 100

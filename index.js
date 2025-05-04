@@ -112,7 +112,8 @@ const key_tems = {
   reply_markup: { 
     keyboard: [[
       {text: 'Добавить тему'} ,
-      {text: 'Удалить тему'}
+      {text: 'Удалить тему'},
+      {text: '🔙 Назад'}
     ]], 
     resize_keyboard: true,
     one_time_keyboard: false
@@ -124,7 +125,8 @@ const key_chanle = {
     keyboard: [[
       {text: 'Добавить канал'} ,
       {text: 'Удалить канал'},
-      {text: 'Посмотреть каналы'}
+      {text: 'Посмотреть каналы'},
+      {text: '🔙 Назад'}
     ]], 
     resize_keyboard: true,
     one_time_keyboard: false
@@ -339,7 +341,7 @@ bot.on('message', async (msg) => {
               // Отправляем сообщения с задержкой (чтобы избежать флуда)
               for (const msg of messages) {
                 try {
-                  await bot.sendMessage(chatId, msg);
+                  await bot.sendMessage(chatId, msg, start_btn);
                   await new Promise(resolve => setTimeout(resolve, 300)); // Задержка 300мс
                 } catch (msgError) {
                   console.error(`Ошибка отправки сообщения: ${msgError.message}`);
