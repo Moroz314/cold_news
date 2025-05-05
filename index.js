@@ -264,7 +264,7 @@ bot.onText(/^Посмотреть каналы$/, async (msg) => {
     await bot.sendMessage(
       msg.chat.id,
       `📌 Ваши сохраненные каналы:\n\n${channelsList}`,
-      keyboard
+      start_btn
     );
   } catch (error) {
     console.error('Ошибка при обработке команды "Посмотреть каналы":', error);
@@ -556,7 +556,6 @@ bot.onText(/^Удалить канал (.+)$/, async (msg, match) => {
     
     await user.removeChannl(channelName);
     await startMonitoring()
-    const keyboard_tems = await generateKeyboard(msg.from.id);
     await bot.sendMessage(msg.chat.id, `Канал "${channelName}" удален!`, start_btn);
     
     // Обновляем мониторинг после удаления канала
