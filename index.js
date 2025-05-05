@@ -538,7 +538,7 @@ bot.onText(/^Удалить канал$/, async (msg) => {
       }
     };
     
-    await bot.sendMessage(msg.chat.id, 'Выберите канал для удаления:', start_btn);
+    await bot.sendMessage(msg.chat.id, 'Выберите канал для удаления:', keyboard_tems);
   } catch (err) {
     console.error('Ошибка в обработчике удаления каналов:', err);
     await bot.sendMessage(msg.chat.id, 'Произошла ошибка при обработке запроса');
