@@ -99,33 +99,90 @@ const agent = new https.Agent({
   rejectUnauthorized: false
 });
 
-export async function searchMessages(channels, keyword) {
+export async function searchMessages(channels, keyword, options = {}) {
+  const {
+    limit = 50,              // Лимит сообщений на канал
+    minLength = 10,          // Минимальная длина сообщения
+    maxLength = 2000,        // Максимальная длина сообщения
+    dateFilter = null,       // Фильтр по дате {from, to}
+    withMetadata = false,    // Включать метаданные
+    filterLinks = true       // Фильтровать сообщения только с ссылками
+  } = options;
+
   try {
     const results = await Promise.all(
       channels.map(async (channel) => {
         try {
-
           const entity = await client.getEntity(channel);
           
-          const messages = await client.getMessages(entity, {
+          // Дополнительные параметры поиска
+          const searchParams = {
             search: keyword,
-            limit: 100
-          });
+            limit,
+            filter: filterLinks ? new Api.InputMessagesFilterUrl() : undefined
+          };
+
+          // Добавляем фильтр по дате если указан
+          if (dateFilter) {
+            if (dateFilter.from) {
+              searchParams.minDate = Math.floor(new Date(dateFilter.from).getTime() / 1000);
+            }
+            if (dateFilter.to) {
+              searchParams.maxDate = Math.floor(new Date(dateFilter.to).getTime() / 1000);
+            }
+          }
+
+          const messages = await client.getMessages(entity, searchParams);
+          
+          // Фильтрация и форматирование результатов
+          const processedMessages = messages
+            .filter(msg => msg.text && msg.text.length >= minLength && msg.text.length <= maxLength)
+            .map(msg => {
+              const result = {
+                text: msg.text,
+                date: msg.date,
+                id: msg.id
+              };
+
+              if (withMetadata) {
+                Object.assign(result, {
+                  channel: channel,
+                  url: `https://t.me/${channel}/${msg.id}`,
+                  views: msg.views,
+                  forwards: msg.forwards
+                });
+              }
+
+              return result;
+            });
 
           return {
             channel,
-            messages: messages.map(msg => msg.text)
+            messages: processedMessages,
+            count: processedMessages.length
           };
         } catch (err) {
-          console.error(`Error in channel ${channel}:`, err);
-          return { channel, messages: [] };
+          console.error(`Error searching in channel ${channel}:`, err);
+          return { 
+            channel, 
+            messages: [], 
+            error: err.message,
+            count: 0 
+          };
         }
       })
     );
-    return results;
+
+    // Сортировка результатов по количеству найденных сообщений
+    return results.sort((a, b) => b.count - a.count);
   } catch (err) {
-    console.error('Global error:', err);
-    return channels.map(channel => ({ channel, messages: [] }));
+    console.error('Global search error:', err);
+    return channels.map(channel => ({ 
+      channel, 
+      messages: [], 
+      error: 'Global search error',
+      count: 0 
+    }));
   }
 }
 
@@ -342,7 +399,7 @@ async function savePost(postData, allThemes) {
                 [
                   { text: "🔗 Открыть пост", url: postData.ssilkaPost },
                   { 
-                    text: "🔕 Отключить уведомления", 
+                    text: "❌Отключить уведомления", 
                     callback_data: `disable_${userMatchedThemes.join('|')}`
                   }
                 ]

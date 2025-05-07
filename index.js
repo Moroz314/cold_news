@@ -22,6 +22,8 @@ const TGStat = process.env.TGStat
 
 const activeUsers = new Set();
 
+const activeSearches = new Map();
+
 
 async function connectDB() {
   try {
@@ -103,6 +105,15 @@ const start_btn = {
       {text: '🛠️Настройка тем'} ,
       {text: '🛠️Настройка каналов'} ,
       {text: '❌Отключить уведомления'}
+    ]], 
+    resize_keyboard: true,
+    one_time_keyboard: false
+  } 
+}
+const stop_btn = {
+  reply_markup: { 
+    keyboard: [[
+      {text: 'Стоп'}
     ]], 
     resize_keyboard: true,
     one_time_keyboard: false
@@ -193,7 +204,7 @@ export async function sendPostNotifications(postData) {
               inline_keyboard: [
                 [
                   { text: "🔗 Открыть пост", url: postData.ssilkaPost },
-                  { text: "🔕 Отключить уведомления", callback_data: `disable_notif_${user.telegramId}` }
+                  { text: "❌Отключить уведомления", callback_data: `disable_notif_${user.telegramId}` }
                 ]
               ]
             }
@@ -239,7 +250,8 @@ bot.onText(/^🔎Поиск постов$/, async (msg) => {
   userStates.set(msg.chat.id, { action: 'SerchPosts' });
   await bot.sendMessage(
     msg.chat.id, 
-    `Введите ключевые слова для поиска постов (в каналах которые вы добавили в бота):`, start_btn
+    `Введите ключевые слова для поиска постов (в каналах которые вы добавили в бота). Для остановки поиска нажмите "Стоп":`, 
+    stop_btn
   );
 });
 
@@ -307,60 +319,126 @@ bot.on('message', async (msg) => {
   if(text == '🔙 Назад'){
     await bot.sendMessage(msg.chat.id, 'что можно сделать:',start_btn)
   }
-
-  if (userState?.action === 'SerchPosts'){
+  if (userState?.action === 'SerchPosts') {
     userStates.delete(chatId);
-
-    if (text.length < 2) {
-      return bot.sendMessage(chatId, 'Название темы должно содержать минимум 2 символа');
+  
+    // Обработка команды "Стоп" до начала поиска
+    if (text === 'Стоп') {
+        activeSearches.set(chatId, { isActive: false });
+        return await bot.sendMessage(chatId, 'Поиск не был начат', start_btn);
     }
+  
+    if (text.length < 2) {
+        return bot.sendMessage(chatId, 'Запрос должен содержать минимум 2 символа');
+    }
+    
     try {
         const user = await getOrCreateUser(msg.from.id);
-    
         
-        // Проверяем, есть ли у пользователя каналы
         if (!user.channles || user.channles.length === 0) {
-          return await bot.sendMessage(
-            msg.chat.id,
-            'У вас пока нет сохраненных каналов.'
-          );
+            return await bot.sendMessage(
+                msg.chat.id,
+                'У вас пока нет сохраненных каналов. Добавьте каналы в настройках.'
+            );
         }   
-    
-        // Формируем список каналов в виде текста
-        const channelsList = user.channles
-
-        searchMessages(channelsList, text).then(async (results) => {
-          for (const { channel, messages } of results) {
-            try {
-              // Отправляем заголовок с информацией о канале
-              await bot.sendMessage(
-                chatId,
-                `=== Найдено в ${channel} (${messages.length} сообщений) ===`
-              );
         
-              // Отправляем сообщения с задержкой (чтобы избежать флуда)
-              for (const msg of messages) {
-                try {
-                  await bot.sendMessage(chatId, msg, start_btn);
-                  await new Promise(resolve => setTimeout(resolve, 300)); // Задержка 300мс
-                } catch (msgError) {
-                  console.error(`Ошибка отправки сообщения: ${msgError.message}`);
-                }
-              }
-            } catch (channelError) {
-              console.error(`Ошибка обработки канала ${channel}: ${channelError.message}`);
-            }
-          }
-        }).catch(error => {
-          console.error('Ошибка поиска:', error);
-          bot.sendMessage(chatId, '⚠️ Произошла ошибка при поиске сообщений');
+        const channelsList = user.channles;
+        
+        // Инициализация поиска
+        activeSearches.set(chatId, { 
+            isActive: true,
+            startTime: new Date(),
+            keyword: text
         });
-      
+        
+        // Отправка информации о начале поиска
+        await bot.sendMessage(
+            chatId,
+            `🔍 Начинаю поиск по запросу: "${text}"\n` +
+            `📌 Каналов для поиска: ${channelsList.length}\n` +
+            `Для остановки нажмите "Стоп"`,
+            stop_btn
+        );
+        
+        // Поиск с обработкой прерывания
+        const results = await searchMessages(channelsList, text, {
+            limit: 20, // Ограничиваем количество сообщений для быстрого ответа
+            withMetadata: true
+        });
+        
+        let totalFound = 0;
+        let channelsWithResults = 0;
+        
+        for (const { channel, messages } of results) {
+            // Проверка флага остановки
+            if (!activeSearches.get(chatId)?.isActive) break;
+            
+            if (messages.length > 0) {
+                channelsWithResults++;
+                totalFound += messages.length;
+                
+                try {
+                    // Отправка сводки по каналу
+                    await bot.sendMessage(
+                        chatId,
+                        `📢 <b>${channel}</b>\n` +
+                        `Найдено сообщений: ${messages.length}\n` +
+                        `Последнее: ${messages[0].date.toLocaleString()}`,
+                        { parse_mode: 'HTML' }
+                    );
+                    
+                    // Отправка сообщений с пагинацией
+                    for (const [index, msg] of messages.entries()) {
+                        if (!activeSearches.get(chatId)?.isActive) break;
+                        
+                        const messageText = `💬 <b>Сообщение</b> \n` +
+                                           `📅 ${new Date(msg.date * 1000).toLocaleString('ru-RU')}\n` +
+                                           `🔗 <a href="${msg.url}">Перейти к сообщению</a>\n\n` +
+                                           `${msg.text.substring(0, 300)}${msg.text.length > 300 ? '...' : ''}`;
+                        
+                        await bot.sendMessage(
+                            chatId,
+                            messageText,
+                            {
+                                parse_mode: 'HTML',
+                                disable_web_page_preview: true,
+                                reply_markup: index === messages.length - 1 ? stop_btn : undefined
+                            }
+                        );
+                        
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                } catch (channelError) {
+                    console.error(`Ошибка обработки канала ${channel}:`, channelError);
+                }
+            }
+        }
+        
+        // Формирование итогового сообщения
+        let summaryMessage;
+        if (!activeSearches.get(chatId)?.isActive) {
+            summaryMessage = `🛑 Поиск остановлен\n` +
+                             `Найдено: ${totalFound} сообщений в ${channelsWithResults} каналах`;
+        } else {
+            summaryMessage = `✅ Поиск завершен\n` +
+                            `Всего найдено: ${totalFound} сообщений в ${channelsWithResults} каналах\n` +
+                            `По запросу: "${text}"`;
+        }
+        
+        await bot.sendMessage(chatId, summaryMessage, start_btn);
+        
     } catch (error) {
-      
+        console.error('Ошибка поиска:', error);
+        await bot.sendMessage(
+            chatId,
+            '⚠️ Произошла ошибка при поиске сообщений',
+            start_btn
+        );
+    } finally {
+        activeSearches.delete(chatId);
     }
     return;
-  }
+}
   if (userState?.action === 'addingTheme') {
     userStates.delete(chatId);
   
@@ -566,6 +644,15 @@ bot.onText(/^Удалить канал (.+)$/, async (msg, match) => {
   }
 });
 
+bot.onText(/^Стоп$/, async (msg) => {
+  const chatId = msg.chat.id;
+  
+  if (activeSearches.has(chatId)) {
+    activeSearches.set(chatId, { isActive: false });
+    await bot.sendMessage(chatId, '🛑 Получена команда остановки...', start_btn);
+  }
+});
+
 
 bot.on('callback_query', async (callbackQuery) => {
   const msg = callbackQuery.message;
@@ -593,4 +680,4 @@ process.on('SIGINT', async () => {
   await mongoose.disconnect();
   bot.stopPolling();
   process.exit();
-});
+}); 
