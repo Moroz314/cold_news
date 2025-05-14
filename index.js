@@ -254,29 +254,55 @@ bot.onText(/^🔎Поиск постов$/, async (msg) => {
     stop_btn
   );
 });
+const DEFAULT_CHANNELS = [
+  'CDTOonline',
+  'mainranepa',
+  'ranepa_im',
+  'ranepa_science',
+  'pers_conf',
+  'gspmranepa',
+  'ranepa_regions',
+  'akomissarov2022',
+  'Emit_ranepa',
+  'ec_dep_ranepa'
+];
 
 bot.onText(/^Посмотреть каналы$/, async (msg) => {
   try {
     const user = await getOrCreateUser(msg.from.id);
 
-    
-    // Проверяем, есть ли у пользователя каналы
+  
+
+    // Форматируем каналы в виде ссылок
+    const formatChannelLinks = (channels) => {
+      return channels.map((channel, index) => 
+        `${index + 1}. <a href="https://t.me/${channel}">${channel}</a>`
+      ).join('\n');
+    };
+
+    // Если у пользователя нет своих каналов
     if (!user.channles || user.channles.length === 0) {
       return await bot.sendMessage(
         msg.chat.id,
-        'У вас пока нет сохраненных каналов.'
+        `📌 <b>Каналы по умолчанию:</b>\n\n${formatChannelLinks(DEFAULT_CHANNELS)}`,
+        {
+          parse_mode: 'HTML',
+          disable_web_page_preview: true,
+          reply_markup: start_btn
+        }
       );
-    }   
+    }
 
-    // Формируем список каналов в виде текста
-    const channelsList = user.channles
-      .map((channel, index) => `${index + 1}. ${channel}`)
-      .join('\n');
-
+    // Если есть свои каналы
     await bot.sendMessage(
       msg.chat.id,
-      `📌 Ваши сохраненные каналы:\n\n${channelsList}`,
-      start_btn
+      `📌 <b>Каналы по умолчанию:</b>\n${formatChannelLinks(DEFAULT_CHANNELS)}\n\n` +
+      `📌 <b>Ваши каналы:</b>\n${formatChannelLinks(user.channles)}`,
+      {
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+        reply_markup: start_btn
+      }
     );
   } catch (error) {
     console.error('Ошибка при обработке команды "Посмотреть каналы":', error);
@@ -286,7 +312,6 @@ bot.onText(/^Посмотреть каналы$/, async (msg) => {
     );
   }
 });
-
 bot.onText(/^Отключить уведомления$/, async (msg) => {
   activeUsers.delete(msg.from.id);
   await bot.sendMessage(
@@ -335,15 +360,8 @@ bot.on('message', async (msg) => {
     try {
         const user = await getOrCreateUser(msg.from.id);
         
-        if (!user.channles || user.channles.length === 0) {
-            return await bot.sendMessage(
-                msg.chat.id,
-                'У вас пока нет сохраненных каналов. Добавьте каналы в настройках.'
-            );
-        }   
-        
-        const channelsList = user.channles;
-        
+
+        const channelsList = [...new Set([...DEFAULT_CHANNELS, ...user.channles])];
         // Инициализация поиска
         activeSearches.set(chatId, { 
             isActive: true,
@@ -362,7 +380,7 @@ bot.on('message', async (msg) => {
         
         // Поиск с обработкой прерывания
         const results = await searchMessages(channelsList, text, {
-            limit: 20, // Ограничиваем количество сообщений для быстрого ответа
+            limit: 10, // Ограничиваем количество сообщений для быстрого ответа
             withMetadata: true
         });
         
@@ -383,7 +401,7 @@ bot.on('message', async (msg) => {
                         chatId,
                         `📢 <b>${channel}</b>\n` +
                         `Найдено сообщений: ${messages.length}\n` +
-                        `Последнее: ${messages[0].date.toLocaleString()}`,
+                        `Последнее: ${new Date(messages[0].date* 1000).toLocaleString('ru-RU')}`,
                         { parse_mode: 'HTML' }
                     );
                     

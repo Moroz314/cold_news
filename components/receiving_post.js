@@ -101,12 +101,13 @@ const agent = new https.Agent({
 
 export async function searchMessages(channels, keyword, options = {}) {
   const {
-    limit = 50,              // Лимит сообщений на канал
-    minLength = 10,          // Минимальная длина сообщения
-    maxLength = 2000,        // Максимальная длина сообщения
-    dateFilter = null,       // Фильтр по дате {from, to}
-    withMetadata = false,    // Включать метаданные
-    filterLinks = true       // Фильтровать сообщения только с ссылками
+    limit = 10,              // Теперь по умолчанию 10 сообщений
+    minLength = 10,
+    maxLength = 2000,
+    dateFilter = null,
+    withMetadata = false,
+    filterLinks = true,
+    sortByNewest = true      // Новый параметр для сортировки по новизне
   } = options;
 
   try {
@@ -115,28 +116,25 @@ export async function searchMessages(channels, keyword, options = {}) {
         try {
           const entity = await client.getEntity(channel);
           
-          // Дополнительные параметры поиска
           const searchParams = {
             search: keyword,
-            limit,
+            limit: limit + 10, // Берем немного больше на случай фильтрации
             filter: filterLinks ? new Api.InputMessagesFilterUrl() : undefined
           };
 
-          // Добавляем фильтр по дате если указан
-          if (dateFilter) {
-            if (dateFilter.from) {
-              searchParams.minDate = Math.floor(new Date(dateFilter.from).getTime() / 1000);
-            }
-            if (dateFilter.to) {
-              searchParams.maxDate = Math.floor(new Date(dateFilter.to).getTime() / 1000);
-            }
+        
+
+          let messages = await client.getMessages(entity, searchParams);
+          
+          // Сортируем по дате (новые сначала) если требуется
+          if (sortByNewest) {
+            messages.sort((a, b) => b.date - a.date);
           }
 
-          const messages = await client.getMessages(entity, searchParams);
-          
-          // Фильтрация и форматирование результатов
+          // Фильтрация и ограничение результата
           const processedMessages = messages
             .filter(msg => msg.text && msg.text.length >= minLength && msg.text.length <= maxLength)
+            .slice(0, limit) // Берем только нужное количество
             .map(msg => {
               const result = {
                 text: msg.text,
@@ -159,7 +157,8 @@ export async function searchMessages(channels, keyword, options = {}) {
           return {
             channel,
             messages: processedMessages,
-            count: processedMessages.length
+            count: processedMessages.length,
+            newestDate: processedMessages[0]?.date || null // Дата самого нового сообщения
           };
         } catch (err) {
           console.error(`Error searching in channel ${channel}:`, err);
@@ -173,8 +172,15 @@ export async function searchMessages(channels, keyword, options = {}) {
       })
     );
 
-    // Сортировка результатов по количеству найденных сообщений
-    return results.sort((a, b) => b.count - a.count);
+    // Сортировка каналов по дате самого нового сообщения
+    if (sortByNewest) {
+      results.sort((a, b) => (b.newestDate || 0) - (a.newestDate || 0));
+    } else {
+      // Или по количеству сообщений, если не сортируем по новизне
+      results.sort((a, b) => b.count - a.count);
+    }
+
+    return results;
   } catch (err) {
     console.error('Global search error:', err);
     return channels.map(channel => ({ 
@@ -435,13 +441,34 @@ function formatThemesText(themes) {
 
 
 
-
+const DEFAULT_CHANNELS = [
+  'CDTOonline',
+  'mainranepa',
+  'ranepa_im',
+  'ranepa_science',
+  'pers_conf',
+  'gspmranepa',
+  'ranepa_regions',
+  'akomissarov2022',
+  'Emit_ranepa',
+  'ec_dep_ranepa',
+  'Emit_ranepa'
+];
 
 
 export async function updateChannelsList() {
-    const allChanle = await UserTheme.distinct('channles');
-
-    return allChanle
+  try {
+    // Получаем ВСЕ каналы, которые пользователи добавили вручную
+    const userAddedChannels = await UserTheme.distinct('channles');
+    
+    // Объединяем с каналами по умолчанию и убираем дубликаты
+    const allChannels = [...new Set([...DEFAULT_CHANNELS, ...userAddedChannels])];
+    
+    return allChannels;
+  } catch (error) {
+    console.error('⚠️ Ошибка при обновлении списка каналов:', error);
+    return DEFAULT_CHANNELS; // Возвращаем хотя бы каналы по умолчанию
+  }
 }
 
 async function cleanOldPosts() {
