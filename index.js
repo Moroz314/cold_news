@@ -264,7 +264,8 @@ const DEFAULT_CHANNELS = [
   'ranepa_regions',
   'akomissarov2022',
   'Emit_ranepa',
-  'ec_dep_ranepa'
+  'ec_dep_ranepa',
+  'PrioritiesRanepa'
 ];
 
 bot.onText(/^Посмотреть каналы$/, async (msg) => {

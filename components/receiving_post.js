@@ -12,6 +12,20 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const DEFAULT_CHANNELS = [
+  'CDTOonline',
+  'mainranepa',
+  'ranepa_im',
+  'ranepa_science',
+  'pers_conf',
+  'gspmranepa',
+  'ranepa_regions',
+  'akomissarov2022',
+  'Emit_ranepa',
+  'ec_dep_ranepa',
+  'Emit_ranepa',
+  'PrioritiesRanepa'
+];
 
 
 const apiId = 21571955;
@@ -361,7 +375,8 @@ async function savePost(postData, allThemes) {
     
 
     processedPosts.set(postKey, true);
-    
+
+    const isDefaultChannel = DEFAULT_CHANNELS.includes(postData.channelUsername);
 
     const postThemes = await classifyPost(postData.text, allThemes);
     console.log("Извлечённые темы:", postThemes);
@@ -374,14 +389,12 @@ async function savePost(postData, allThemes) {
     const chanlsubscribe = postData.channelUsername
 
 
-    const subscribedUsers = await UserTheme.find({
-      themes: { 
-        $in: notificationThemes
-      },
-      channles : { 
-        $in: chanlsubscribe
-      }
-    });
+   const subscribedUsers = isDefaultChannel 
+      ? await UserTheme.find({})
+      : await UserTheme.find({
+          themes: { $in: notificationThemes },
+          channles: { $in: chanlsubscribe }
+        });
 
 
     for (const user of subscribedUsers) {
@@ -441,19 +454,7 @@ function formatThemesText(themes) {
 
 
 
-const DEFAULT_CHANNELS = [
-  'CDTOonline',
-  'mainranepa',
-  'ranepa_im',
-  'ranepa_science',
-  'pers_conf',
-  'gspmranepa',
-  'ranepa_regions',
-  'akomissarov2022',
-  'Emit_ranepa',
-  'ec_dep_ranepa',
-  'Emit_ranepa'
-];
+
 
 
 export async function updateChannelsList() {
