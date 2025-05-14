@@ -280,6 +280,7 @@ bot.onText(/^Посмотреть каналы$/, async (msg) => {
         `${index + 1}. <a href="https://t.me/${channel}">${channel}</a>`
       ).join('\n');
     };
+    
 
     // Если у пользователя нет своих каналов
     if (!user.channles || user.channles.length === 0) {
