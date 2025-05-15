@@ -366,14 +366,12 @@ const processedPosts = new Map();
 
 async function savePost(postData, allThemes) {
   try {
-
     const postKey = `${postData.channelId}_${postData.ssilkaPost}`;
     if (processedPosts.has(postKey)) {
       console.log(`Пост уже обработан: ${postKey}`);
       return;
     }
     
-
     processedPosts.set(postKey, true);
 
     const isDefaultChannel = DEFAULT_CHANNELS.includes(postData.channelUsername);
@@ -381,36 +379,44 @@ async function savePost(postData, allThemes) {
     const postThemes = await classifyPost(postData.text, allThemes);
     console.log("Извлечённые темы:", postThemes);
 
-    postData.tema = postThemes;
+    // Не сохраняем и не уведомляем если тема только "другое"
+    if (postThemes.length === 1 && postThemes[0] === "другое") {
+      console.log(`Пост с темой "другое" пропущен: ${postKey}`);
+      return;
+    }
 
+    postData.tema = postThemes;
     const savedPost = await new PostModels.post_news(postData).save();
 
-    const notificationThemes = postThemes;
-    const chanlsubscribe = postData.channelUsername
-
-
-   const subscribedUsers = isDefaultChannel 
-      ? await UserTheme.find({})
+    // Для каналов по умолчанию ищем всех пользователей
+    // Для остальных - только тех, кто подписан на темы или канал
+    const subscribedUsers = isDefaultChannel 
+      ? await UserTheme.find({
+          themes: { $in: postThemes } // Только пользователи с совпадающими темами
+        })
       : await UserTheme.find({
-          themes: { $in: notificationThemes },
-          channles: { $in: chanlsubscribe }
+          $or: [
+            { themes: { $in: postThemes } },
+            { channles: { $in: [postData.channelUsername] } }
+          ]
         });
-
 
     for (const user of subscribedUsers) {
       try {
+        // Определяем совпавшие темы
         const userMatchedThemes = user.themes.filter(theme => 
-          notificationThemes.includes(theme)
+          postThemes.includes(theme)
         );
-
-        const themesText = userMatchedThemes.join(", ");
+        
+        // Формируем текст уведомления
+        const themesText = formatThemesText(userMatchedThemes);
         
         await bot.sendMessage(
           user.telegramId,
-          `📢 <b>Новый пост по теме: ${themesText}</b>\n` +
+          `📢 <b>Новый пост${isDefaultChannel ? ' из важного канала' : ' по теме: ' + themesText}</b>\n` +
           `<b>Канал:</b> ${postData.channel}\n` +
           `<b>Текст:</b> ${postData.text.substring(0, 100)}...\n\n` +
-          `🏷️ <i>Теги: ${notificationThemes.join(', ')}</i>`,
+          `🏷️ <i>Теги: ${postThemes.join(', ')}</i>`,
           {
             parse_mode: 'HTML',
             reply_markup: {
@@ -418,7 +424,7 @@ async function savePost(postData, allThemes) {
                 [
                   { text: "🔗 Открыть пост", url: postData.ssilkaPost },
                   { 
-                    text: "❌Отключить уведомления", 
+                    text: "❌ Отключить уведомления", 
                     callback_data: `disable_${userMatchedThemes.join('|')}`
                   }
                 ]
@@ -427,15 +433,14 @@ async function savePost(postData, allThemes) {
           }
         );
         await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log(`📨 Уведомление отправлено ${user.telegramId} по темам: ${themesText}`);
+        console.log(`📨 Уведомление отправлено ${user.telegramId}`);
       } catch (err) {
         console.error(`Ошибка отправки пользователю ${user.telegramId}:`, err.message);
       }
     }
 
-    console.log(`💾 Сохранён пост: "${postData.text.substring(0, 30)}..." с темами: ${postThemes.join(', ')}`);
+    console.log(`💾 Сохранён пост: "${postData.text.substring(0, 30)}..."`);
     
-    // Очищаем старые записи, чтобы не накапливать память
     if (processedPosts.size > 1000) {
       const oldestKey = processedPosts.keys().next().value;
       processedPosts.delete(oldestKey);
