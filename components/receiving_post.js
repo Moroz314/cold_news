@@ -407,13 +407,17 @@ async function savePost(postData, allThemes) {
         const userMatchedThemes = user.themes.filter(theme => 
           postThemes.includes(theme)
         );
+
+        if (userMatchedThemes.length === 0) {
+        continue;
+        }
         
         // Формируем текст уведомления
         const themesText = formatThemesText(userMatchedThemes);
         
         await bot.sendMessage(
           user.telegramId,
-          `📢 <b>Новый пост по теме: ' ${themesText}</b>\n` +
+          `📢 <b>Новый пост по теме: ${themesText}</b>\n` +
           `<b>Канал:</b> ${postData.channel}\n` +
           `<b>Текст:</b> ${postData.text.substring(0, 100)}...\n\n` +
           `🏷️ <i>Теги: ${postThemes.join(', ')}</i>`,
