@@ -413,7 +413,7 @@ async function savePost(postData, allThemes) {
         
         await bot.sendMessage(
           user.telegramId,
-          `📢 <b>Новый пост${isDefaultChannel ? ' из важного канала' : ' по теме: ' + themesText}</b>\n` +
+          `📢 <b>Новый пост по теме: ' ${themesText}</b>\n` +
           `<b>Канал:</b> ${postData.channel}\n` +
           `<b>Текст:</b> ${postData.text.substring(0, 100)}...\n\n` +
           `🏷️ <i>Теги: ${postThemes.join(', ')}</i>`,
